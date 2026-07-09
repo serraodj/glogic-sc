@@ -96,7 +96,7 @@
     .title-log { color: #60a5fa; }
     .title-load { color: #f59e0b; }
     .title-inv { color: #c084fc; }
-    .title-db { color: #ec4899; } /* Color rosa para la base de datos */
+    .title-db { color: #ec4899; }
 
     /* ESTATUS MOTOR BD */
     .status-box {
@@ -222,14 +222,15 @@
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
-    .view-grid {
+    /* DISEÑO ESTRUCTURAL DE LA DATA MAESTRA */
+    .view-grid-master {
       display: grid;
       grid-template-columns: 1fr;
       gap: 2rem;
     }
     @media (min-width: 1200px) {
-      .view-grid {
-        grid-template-columns: 1fr 2fr;
+      .view-grid-master {
+        grid-template-columns: 320px 1fr 1fr; /* Formulario fijo, y dos tablas dinámicas al lado */
       }
     }
 
@@ -238,6 +239,7 @@
       border: 1px solid rgba(30, 41, 59, 0.8);
       border-radius: 1rem;
       padding: 1.5rem;
+      height: fit-content;
     }
     .card-title {
       font-size: 1rem;
@@ -277,8 +279,8 @@
     }
     .divider {
       border-top: 1px solid rgba(30, 41, 59, 0.6);
-      margin: 1rem 0;
-      padding-top: 0.75rem;
+      margin: 1.25rem 0;
+      padding-top: 1.25rem;
     }
     .submit-btn {
       width: 100%;
@@ -290,8 +292,11 @@
       border: none;
       border-radius: 0.75rem;
       cursor: pointer;
+      margin-top: 0.25rem;
     }
     .submit-btn:hover { background-color: #10b981; }
+    .submit-btn-orange { background-color: #d97706; }
+    .submit-btn-orange:hover { background-color: #f59e0b; }
 
     .table-header-flex {
       display: flex;
@@ -324,13 +329,21 @@
     .font-mono-emerald {
       font-family: monospace;
       color: #34d399;
+      font-weight: 600;
+    }
+    .font-mono-amber {
+      font-family: monospace;
+      color: #fbbf24;
+      font-weight: 600;
     }
     .badge-plate {
-      background-color: #1e293b;
-      padding: 0.125rem 0.5rem;
-      border-radius: 0.25rem;
-      font-size: 0.75rem;
-      border: 1px solid #334155;
+      background-color: rgba(245, 158, 11, 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.813rem;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbb324;
+      display: inline-block;
     }
 
     .generic-view-header {
@@ -444,38 +457,48 @@
       <!-- VISTA DATA MAESTRA -->
       <section id="view-data-maestra" class="view-section active">
         <div class="tab-container">
-          <button class="tab-btn active">🚛 Conductores y Placas</button>
+          <button class="tab-btn active">👤 Conductores Maestra</button>
+          <button class="tab-btn">🚛 Placas Libres</button>
           <button class="tab-btn">🏢 Clientes y Aliados</button>
-          <button class="tab-btn">🌾 Productos y Presentaciones</button>
         </div>
 
-        <div class="view-grid">
+        <div class="view-grid-master">
+          <!-- Columna 1: Formularios de Entrada -->
           <div>
-            <!-- Formulario -->
+            <!-- Registro de Choferes -->
             <div class="panel-card">
-              <h2 class="card-title"><span style="color:#10b981;">✚</span> Registrar Chofer o Placa</h2>
-              <p class="card-subtitle">Las placas se guardan independientes ya que se rotan por disponibilidad.</p>
-              <form id="manualForm" style="margin-top:0.5rem;">
+              <h2 class="card-title"><span style="color:#10b981;">✚</span> Registrar Conductor</h2>
+              <p class="card-subtitle">Asignación de datos del transportista.</p>
+              <form id="driverForm">
                 <div class="form-group">
-                  <label>C.I. (Documento Único)</label>
+                  <label>C.I. / Identificación</label>
                   <input type="text" id="inputCI" placeholder="Ej: V-12345678" required>
                 </div>
                 <div class="form-group">
-                  <label>Nombre Completo Conductor</label>
+                  <label>Nombre Completo</label>
                   <input type="text" id="inputNombre" placeholder="Ej: RAMON PEREZ" required>
                 </div>
-                <div class="form-group divider">
-                  <label style="color:#f59e0b;">Registrar Nueva Placa Solitaria</label>
-                  <input type="text" id="inputPlaca" placeholder="Ej: A12B34C">
-                </div>
-                <button type="submit" class="submit-btn">Guardar en Base Maestra</button>
+                <button type="submit" class="submit-btn">Guardar Conductor</button>
               </form>
             </div>
 
-            <!-- Carga Masiva -->
+            <!-- Registro de Placas Autónomas -->
+            <div class="panel-card" style="margin-top: 1rem; border-color: rgba(245, 158, 11, 0.4);">
+              <h2 class="card-title"><span style="color:#f59e0b;">✚</span> Registrar Placa Libre</h2>
+              <p class="card-subtitle">Registro de unidades disponibles para fletes.</p>
+              <form id="plateForm">
+                <div class="form-group">
+                  <label style="color:#fbbf24;">Número de Placa (Batea/Chuto)</label>
+                  <input type="text" id="inputPlacaOnly" placeholder="Ej: A12B34C" required>
+                </div>
+                <button type="submit" class="submit-btn submit-btn-orange">Guardar Placa Libre</button>
+              </form>
+            </div>
+
+            <!-- Carga Masiva Común -->
             <div class="panel-card" style="border-color: #0369a1; margin-top: 1rem;">
-              <h2 class="card-title" style="color:#38bdf8;">📂 Carga Masiva (Excel / CSV)</h2>
-              <p class="card-subtitle">Sube tu archivo separado por comas para poblar la data instantáneamente.</p>
+              <h2 class="card-title" style="color:#38bdf8;">📂 Carga Masiva (CSV)</h2>
+              <p class="card-subtitle">Sube listas masivas independientes.</p>
               <label for="csvFileInput" style="display: block; width: 100%; background-color: #1e293b; border: 2px dashed #334155; color: #38bdf8; font-weight: 700; font-size: 0.875rem; padding: 0.75rem; border-radius: 0.75rem; text-align: center; cursor: pointer;">
                 📊 Seleccionar archivo .csv
               </label>
@@ -483,117 +506,94 @@
             </div>
           </div>
 
-          <!-- Tabla Limpia -->
+          <!-- Columna 2: Tabla Conductor Maestra -->
           <div class="panel-card">
             <div class="table-header-flex">
-              <h2 class="card-title" style="margin-bottom:0;">Registros Guardados en Pestaña [BD]</h2>
-              <span id="recordCount" style="font-size:0.75rem; color:#10b981; font-weight:bold;">0 Registros activos</span>
+              <h2 class="card-title" style="margin-bottom:0; color:#10b981;">👤 Conductores</h2>
+              <span id="driverCount" style="font-size:0.75rem; color:#10b981; font-weight:bold;">0 Activos</span>
             </div>
             <div class="table-container">
               <table>
                 <thead>
                   <tr>
                     <th>C.I. / Identificación</th>
-                    <th>Nombre Completo Conductor</th>
-                    <th>Placas Registradas Libres</th>
+                    <th>Nombre Completo</th>
                   </tr>
                 </thead>
-                <tbody id="tableBody"></tbody>
+                <tbody id="driverTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Columna 3: Tabla Placas Libres -->
+          <div class="panel-card">
+            <div class="table-header-flex">
+              <h2 class="card-title" style="margin-bottom:0; color:#f59e0b;">🚛 Placas de Flota</h2>
+              <span id="plateCount" style="font-size:0.75rem; color:#f59e0b; font-weight:bold;">0 Libres</span>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Código de Placa</th>
+                    <th>Estado Operativo</th>
+                  </tr>
+                </thead>
+                <tbody id="plateTableBody"></tbody>
               </table>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- SECCIÓN NUEVA: MOTOR BD -->
+      <!-- SECCIÓN MOTOR BD -->
       <section id="view-motor-bd" class="view-section">
         <div class="generic-view-header">
           <h2>🖥️ Estado de Servidores BD</h2>
           <p>Métricas del motor de almacenamiento, conexiones entrantes y respaldos.</p>
         </div>
-        <div class="placeholder-card">
-          Módulo del Sistema — Estado de las consultas e indexación automática de la base maestra.
-        </div>
+        <div class="placeholder-card">Módulo del Sistema — Estado de las consultas e indexación automática de la base maestra.</div>
       </section>
 
       <!-- DEMÁS SECCIONES -->
       <section id="view-pedidos" class="view-section">
-        <div class="generic-view-header">
-          <h2>📦 Base de Datos de Pedidos</h2>
-          <p>Historial general y tracking de órdenes agroindustriales.</p>
-        </div>
+        <div class="generic-view-header"><h2>📦 Base de Datos de Pedidos</h2><p>Historial general y tracking de órdenes agroindustriales.</p></div>
         <div class="placeholder-card">Módulo de Pedidos — Gestión de compras y facturas de la planta.</div>
       </section>
-
       <section id="view-aprobacion" class="view-section">
-        <div class="generic-view-header">
-          <h2>⏳ Aprobación de Pedidos</h2>
-          <p>Control financiero y estados de créditos comerciales.</p>
-        </div>
+        <div class="generic-view-header"><h2>⏳ Aprobación de Pedidos</h2><p>Control financiero y estados de créditos comerciales.</p></div>
         <div class="placeholder-card">Módulo de Aprobaciones — Lista de verificación previa al despacho.</div>
       </section>
-
       <section id="view-acumulado-int" class="view-section">
-        <div class="generic-view-header">
-          <h2>📉 Acumulado Integración</h2>
-          <p>Métricas de servidores y sincronizaciones externas.</p>
-        </div>
+        <div class="generic-view-header"><h2>📉 Acumulado Integración</h2><p>Métricas de servidores y sincronizaciones externas.</p></div>
         <div class="placeholder-card">Módulo de Integración — Datos consolidados de plataformas remotas.</div>
       </section>
-
       <section id="view-acumulado-ped" class="view-section">
-        <div class="generic-view-header">
-          <h2>📊 Acumulado de Pedidos</h2>
-          <p>Volúmenes totales y reportes estadísticos.</p>
-        </div>
+        <div class="generic-view-header"><h2>📊 Acumulado de Pedidos</h2><p>Volúmenes totales y reportes estadísticos.</p></div>
         <div class="placeholder-card">Módulo Estadístico — Historial de toneladas métricas solicitadas.</div>
       </section>
-
       <section id="view-estatus-pedidos" class="view-section">
-        <div class="generic-view-header">
-          <h2>📋 Estatus de Pedidos</h2>
-          <p>Monitoreo en tiempo real del flujo de despacho.</p>
-        </div>
+        <div class="generic-view-header"><h2>📋 Estatus de Pedidos</h2><p>Monitoreo en tiempo real del flujo de despacho.</p></div>
         <div class="placeholder-card">Monitoreo Operativo — En cola / En romana / Despachado.</div>
       </section>
-
       <section id="view-despachos" class="view-section">
-        <div class="generic-view-header">
-          <h2>📈 Comportamiento Despachos</h2>
-          <p>Tiempos de respuesta logísticos y eficiencia de carga.</p>
-        </div>
+        <div class="generic-view-header"><h2>📈 Comportamiento Despachos</h2><p>Tiempos de respuesta logísticos y eficiencia de carga.</p></div>
         <div class="placeholder-card">Rendimiento — Gráficos de eficiencia y carga de vehículos.</div>
       </section>
-
       <section id="view-ordenes-carga" class="view-section">
-        <div class="generic-view-header">
-          <h2>📝 Órdenes de Carga</h2>
-          <p>Asignación física de mercancía a camiones y transportistas.</p>
-        </div>
+        <div class="generic-view-header"><h2>📝 Órdenes de Carga</h2><p>Asignación física de mercancía a camiones y transportistas.</p></div>
         <div class="placeholder-card">Módulo de Órdenes — Emisión de autorizaciones de entrada a planta.</div>
       </section>
-
       <section id="view-solicitud-fletes" class="view-section">
-        <div class="generic-view-header">
-          <h2>🚛 Solicitud de Fletes (Al-Agro)</h2>
-          <p>Coordinación con empresas aliadas de transporte y logística pesada.</p>
-        </div>
+        <div class="generic-view-header"><h2>🚛 Solicitud de Fletes (Al-Agro)</h2><p>Coordinación con empresas aliadas de transporte y logística pesada.</p></div>
         <div class="placeholder-card">Módulo Al-Agro — Contratación e itinerarios de conductores terceros.</div>
       </section>
-
       <section id="view-inventario-granel" class="view-section">
-        <div class="generic-view-header">
-          <h2>🛢️ Inventario Granel (TN)</h2>
-          <p>Capacidad actual y existencias en silos industriales.</p>
-        </div>
+        <div class="generic-view-header"><h2>🛢️ Inventario Granel (TN)</h2><p>Capacidad actual y existencias en silos industriales.</p></div>
         <div class="placeholder-card">Silos — Toneladas métricas disponibles por tipo de materia prima.</div>
       </section>
-
       <section id="view-inventario-sacos" class="view-section">
-        <div class="generic-view-header">
-          <h2>📦 Inventario Sacos</h2>
-          <p>Conteo físico de unidades y presentaciones de producto terminado.</p>
-        </div>
+        <div class="generic-view-header"><h2>📦 Inventario Sacos</h2><p>Conteo físico de unidades y presentaciones de producto terminado.</p></div>
         <div class="placeholder-card">Almacén de Producto Terminado — Palets y conteo exacto de sacos listos.</div>
       </section>
     </div>
@@ -616,35 +616,56 @@
     if (element && mainHeaderTitle) mainHeaderTitle.innerText = element.innerText;
   }
 
-  function updateCounter() {
-    const totalRows = document.querySelectorAll('#tableBody tr').length;
-    const counterElement = document.getElementById('recordCount');
-    if (counterElement) counterElement.innerText = `${totalRows} Registros activos`;
+  function updateCounters() {
+    const totalDrivers = document.querySelectorAll('#driverTableBody tr').length;
+    const totalPlates = document.querySelectorAll('#plateTableBody tr').length;
+    
+    document.getElementById('driverCount').innerText = `${totalDrivers} Activos`;
+    document.getElementById('plateCount').innerText = `${totalPlates} Libres`;
   }
 
-  function appendTableRow(ci, nombre, placa) {
-    const tbody = document.getElementById('tableBody');
+  function appendDriverRow(ci, nombre) {
+    const tbody = document.getElementById('driverTableBody');
     if (!tbody) return;
-
     const row = document.createElement('tr');
     row.innerHTML = `
       <td class="font-mono-emerald">${ci}</td>
       <td style="color:#f8fafc; font-weight:500;">${nombre}</td>
-      <td><span class="badge-plate">${placa}</span></td>
     `;
     tbody.appendChild(row);
-    updateCounter();
+    updateCounters();
   }
 
-  document.getElementById('manualForm').addEventListener('submit', function(e) {
+  function appendPlateRow(placa) {
+    const tbody = document.getElementById('plateTableBody');
+    if (!tbody) return;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><span class="badge-plate">${placa}</span></td>
+      <td class="font-mono-amber">DISPONIBLE</td>
+    `;
+    tbody.appendChild(row);
+    updateCounters();
+  }
+
+  // Submit Conductor
+  document.getElementById('driverForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const ci = document.getElementById('inputCI').value.toUpperCase();
     const nombre = document.getElementById('inputNombre').value.toUpperCase();
-    const placa = document.getElementById('inputPlaca').value.toUpperCase();
-    appendTableRow(ci, nombre, placa);
+    appendDriverRow(ci, nombre);
     this.reset();
   });
 
+  // Submit Placa
+  document.getElementById('plateForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const placa = document.getElementById('inputPlacaOnly').value.toUpperCase();
+    appendPlateRow(placa);
+    this.reset();
+  });
+
+  // Carga Masiva Inteligente (.csv)
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -656,8 +677,19 @@
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
         const columns = lines[i].includes(';') ? lines[i].split(';') : lines[i].split(',');
-        if (columns.length >= 3) {
-          appendTableRow(columns[0].trim().toUpperCase(), columns[1].trim().toUpperCase(), columns[2].trim().toUpperCase());
+        
+        // Si tiene 2 columnas o más, asumimos estructura de Chofer (CI, Nombre)
+        if (columns.length === 2) {
+          appendDriverRow(columns[0].trim().toUpperCase(), columns[1].trim().toUpperCase());
+        } 
+        // Si el renglón contiene solo un dato, se almacena directamente como placa libre
+        else if (columns.length === 1) {
+          appendPlateRow(columns[0].trim().toUpperCase());
+        }
+        // Si subes el formato viejo (3 columnas), los separa automáticamente en sus respectivas tablas libres
+        else if (columns.length >= 3) {
+          if (columns[0] && columns[1]) appendDriverRow(columns[0].trim().toUpperCase(), columns[1].trim().toUpperCase());
+          if (columns[2] && columns[2].trim() !== "") appendPlateRow(columns[2].trim().toUpperCase());
         }
       }
     };
