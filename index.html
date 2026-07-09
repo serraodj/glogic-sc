@@ -230,7 +230,7 @@
     }
     @media (min-width: 1200px) {
       .view-grid-master {
-        grid-template-columns: 320px 1fr 1fr; /* Formulario fijo, y dos tablas dinámicas al lado */
+        grid-template-columns: 320px 1fr 1fr;
       }
     }
 
@@ -240,6 +240,8 @@
       border-radius: 1rem;
       padding: 1.5rem;
       height: fit-content;
+      display: flex;
+      flex-direction: column;
     }
     .card-title {
       font-size: 1rem;
@@ -298,14 +300,67 @@
     .submit-btn-orange { background-color: #d97706; }
     .submit-btn-orange:hover { background-color: #f59e0b; }
 
+    /* FILTROS DE BÚSQUEDA INTERNOS */
+    .search-box {
+      width: 100%;
+      background-color: #020617;
+      border: 1px solid #334155;
+      border-radius: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.813rem;
+      color: white;
+      margin-bottom: 1rem;
+      outline: none;
+    }
+    .search-box:focus {
+      border-color: #38bdf8;
+    }
+
+    /* PAGINACIÓN */
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(30, 41, 59, 0.6);
+    }
+    .pagination-info {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .pagination-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .page-btn {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 0.25rem 0.625rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .page-btn:hover:not(:disabled) {
+      background-color: #334155;
+      color: white;
+    }
+    .page-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
     .table-header-flex {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
     .table-container {
       overflow-x: auto;
+      flex: 1;
     }
     table {
       width: 100%;
@@ -512,6 +567,10 @@
               <h2 class="card-title" style="margin-bottom:0; color:#10b981;">👤 Conductores</h2>
               <span id="driverCount" style="font-size:0.75rem; color:#10b981; font-weight:bold;">0 Activos</span>
             </div>
+            
+            <!-- BUSCADOR CONDUCTORES -->
+            <input type="text" id="driverSearch" class="search-box" placeholder="🔍 Buscar por nombre o C.I...">
+
             <div class="table-container">
               <table>
                 <thead>
@@ -523,6 +582,15 @@
                 <tbody id="driverTableBody"></tbody>
               </table>
             </div>
+
+            <!-- PAGINADOR CONDUCTORES -->
+            <div class="pagination-bar">
+              <span class="pagination-info" id="driverPageInfo">Pág. 1 de 1</span>
+              <div class="pagination-actions">
+                <button class="page-btn" id="driverPrevBtn" onclick="changeDriverPage(-1)" disabled>◀</button>
+                <button class="page-btn" id="driverNextBtn" onclick="changeDriverPage(1)" disabled>▶</button>
+              </div>
+            </div>
           </div>
 
           <!-- Columna 3: Tabla Placas Libres -->
@@ -531,6 +599,10 @@
               <h2 class="card-title" style="margin-bottom:0; color:#f59e0b;">🚛 Placas de Flota</h2>
               <span id="plateCount" style="font-size:0.75rem; color:#f59e0b; font-weight:bold;">0 Libres</span>
             </div>
+
+            <!-- BUSCADOR PLACAS -->
+            <input type="text" id="plateSearch" class="search-box" placeholder="🔍 Buscar placa...">
+
             <div class="table-container">
               <table>
                 <thead>
@@ -541,6 +613,15 @@
                 </thead>
                 <tbody id="plateTableBody"></tbody>
               </table>
+            </div>
+
+            <!-- PAGINADOR PLACAS -->
+            <div class="pagination-bar">
+              <span class="pagination-info" id="platePageInfo">Pág. 1 de 1</span>
+              <div class="pagination-actions">
+                <button class="page-btn" id="platePrevBtn" onclick="changePlatePage(-1)" disabled>◀</button>
+                <button class="page-btn" id="plateNextBtn" onclick="changePlatePage(1)" disabled>▶</button>
+              </div>
             </div>
           </div>
         </div>
@@ -555,7 +636,7 @@
         <div class="placeholder-card">Módulo del Sistema — Estado de las consultas e indexación automática de la base maestra.</div>
       </section>
 
-      <!-- DEMÁS SECCIONES -->
+      <!-- DEMÁS SECCIONES (SKELETONS) -->
       <section id="view-pedidos" class="view-section">
         <div class="generic-view-header"><h2>📦 Base de Datos de Pedidos</h2><p>Historial general y tracking de órdenes agroindustriales.</p></div>
         <div class="placeholder-card">Módulo de Pedidos — Gestión de compras y facturas de la planta.</div>
@@ -565,7 +646,7 @@
         <div class="placeholder-card">Módulo de Aprobaciones — Lista de verificación previa al despacho.</div>
       </section>
       <section id="view-acumulado-int" class="view-section">
-        <div class="generic-view-header"><h2>📉 Acumulado Integración</h2><p>Métricas de servidores y sincronizaciones externas.</p></div>
+        <div class="generic-view-header"><h2>📉 Acumulado Integration</h2><p>Métricas de servidores y sincronizaciones externas.</p></div>
         <div class="placeholder-card">Módulo de Integración — Datos consolidados de plataformas remotas.</div>
       </section>
       <section id="view-acumulado-ped" class="view-section">
@@ -601,6 +682,19 @@
 </div>
 
 <script>
+  // ARRAYS PARA DATA MEMORIA INTERNA
+  let globalDrivers = [];
+  let globalPlates = [];
+
+  // CONFIGURACIÓN DE PAGINACIÓN (50 REGISTROS POR PÁGINA)
+  const ITEMS_PER_PAGE = 50;
+  let currentDriverPage = 1;
+  let currentPlatePage = 1;
+
+  // FILTROS DE BÚSQUEDA ACTIVOS
+  let driverSearchQuery = "";
+  let plateSearchQuery = "";
+
   function switchView(viewId, element) {
     const sections = document.querySelectorAll('.view-section');
     sections.forEach(sec => sec.classList.remove('active'));
@@ -616,56 +710,127 @@
     if (element && mainHeaderTitle) mainHeaderTitle.innerText = element.innerText;
   }
 
-  function updateCounters() {
-    const totalDrivers = document.querySelectorAll('#driverTableBody tr').length;
-    const totalPlates = document.querySelectorAll('#plateTableBody tr').length;
-    
-    document.getElementById('driverCount').innerText = `${totalDrivers} Activos`;
-    document.getElementById('plateCount').innerText = `${totalPlates} Libres`;
-  }
-
-  function appendDriverRow(ci, nombre) {
+  // RENDERIZADO INTELIGENTE DE CONDUCTORES
+  function renderDrivers() {
     const tbody = document.getElementById('driverTableBody');
     if (!tbody) return;
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td class="font-mono-emerald">${ci}</td>
-      <td style="color:#f8fafc; font-weight:500;">${nombre}</td>
-    `;
-    tbody.appendChild(row);
-    updateCounters();
+
+    // Filtrar en memoria
+    const filtered = globalDrivers.filter(d => 
+      d.ci.includes(driverSearchQuery) || d.nombre.includes(driverSearchQuery)
+    );
+
+    // Totales de contadores
+    document.getElementById('driverCount').innerText = `${globalDrivers.length} Activos`;
+
+    // Calcular páginas
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+    if (currentDriverPage > totalPages) currentDriverPage = totalPages;
+
+    // Segmentar el bloque actual
+    const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(start, end);
+
+    // Limpar y pintar
+    tbody.innerHTML = "";
+    pageItems.forEach(d => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="font-mono-emerald">${d.ci}</td>
+        <td style="color:#f8fafc; font-weight:500;">${d.nombre}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    // Estado de botones del paginador
+    document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
+    document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
+    document.getElementById('driverNextBtn').disabled = (currentDriverPage === totalPages);
   }
 
-  function appendPlateRow(placa) {
+  // RENDERIZADO INTELIGENTE DE PLACAS
+  function renderPlates() {
     const tbody = document.getElementById('plateTableBody');
     if (!tbody) return;
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><span class="badge-plate">${placa}</span></td>
-      <td class="font-mono-amber">DISPONIBLE</td>
-    `;
-    tbody.appendChild(row);
-    updateCounters();
+
+    // Filtrar en memoria
+    const filtered = globalPlates.filter(p => p.placa.includes(plateSearchQuery));
+
+    document.getElementById('plateCount').innerText = `${globalPlates.length} Libres`;
+
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+    if (currentPlatePage > totalPages) currentPlatePage = totalPages;
+
+    const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(start, end);
+
+    tbody.innerHTML = "";
+    pageItems.forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><span class="badge-plate">${p.placa}</span></td>
+        <td class="font-mono-amber">DISPONIBLE</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
+    document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
+    document.getElementById('plateNextBtn').disabled = (currentPlatePage === totalPages);
   }
 
-  // Submit Conductor
+  // ACCIONES DE LOS PAGINADORES
+  function changeDriverPage(direction) {
+    currentDriverPage += direction;
+    renderDrivers();
+  }
+
+  function changePlatePage(direction) {
+    currentPlatePage += direction;
+    renderPlates();
+  }
+
+  // LISTENERS DE BÚSQUEDA (TIEMPO REAL)
+  document.getElementById('driverSearch').addEventListener('input', function(e) {
+    driverSearchQuery = e.target.value.toUpperCase().trim();
+    currentDriverPage = 1; // Volver a la primera página al escribir
+    renderDrivers();
+  });
+
+  document.getElementById('plateSearch').addEventListener('input', function(e) {
+    plateSearchQuery = e.target.value.toUpperCase().trim();
+    currentPlatePage = 1;
+    renderPlates();
+  });
+
+  // SUBMITS DE LOS FORMULARIOS MANUALEZ
   document.getElementById('driverForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const ci = document.getElementById('inputCI').value.toUpperCase();
-    const nombre = document.getElementById('inputNombre').value.toUpperCase();
-    appendDriverRow(ci, nombre);
+    const ci = document.getElementById('inputCI').value.toUpperCase().trim();
+    const nombre = document.getElementById('inputNombre').value.toUpperCase().trim();
+    
+    // Validar duplicado básico
+    if(!globalDrivers.some(d => d.ci === ci)) {
+      globalDrivers.push({ ci, nombre });
+      renderDrivers();
+    }
     this.reset();
   });
 
-  // Submit Placa
   document.getElementById('plateForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const placa = document.getElementById('inputPlacaOnly').value.toUpperCase();
-    appendPlateRow(placa);
+    const placa = document.getElementById('inputPlacaOnly').value.toUpperCase().trim();
+    
+    if(!globalPlates.some(p => p.placa === placa)) {
+      globalPlates.push({ placa });
+      renderPlates();
+    }
     this.reset();
   });
 
-  // Carga Masiva Inteligente (.csv)
+  // CARGA MASIVA DE ARRAYS (EXCEL/CSV)
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -674,24 +839,34 @@
     reader.onload = function(e) {
       const text = e.target.result;
       const lines = text.split('\n');
+      
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
         const columns = lines[i].includes(';') ? lines[i].split(';') : lines[i].split(',');
         
-        // Si tiene 2 columnas o más, asumimos estructura de Chofer (CI, Nombre)
         if (columns.length === 2) {
-          appendDriverRow(columns[0].trim().toUpperCase(), columns[1].trim().toUpperCase());
+          const ci = columns[0].trim().toUpperCase();
+          const nombre = columns[1].trim().toUpperCase();
+          if(ci && !globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
         } 
-        // Si el renglón contiene solo un dato, se almacena directamente como placa libre
         else if (columns.length === 1) {
-          appendPlateRow(columns[0].trim().toUpperCase());
+          const placa = columns[0].trim().toUpperCase();
+          if(placa && !globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
         }
-        // Si subes el formato viejo (3 columnas), los separa automáticamente en sus respectivas tablas libres
         else if (columns.length >= 3) {
-          if (columns[0] && columns[1]) appendDriverRow(columns[0].trim().toUpperCase(), columns[1].trim().toUpperCase());
-          if (columns[2] && columns[2].trim() !== "") appendPlateRow(columns[2].trim().toUpperCase());
+          const ci = columns[0].trim().toUpperCase();
+          const nombre = columns[1].trim().toUpperCase();
+          const placa = columns[2].trim().toUpperCase();
+          
+          if (ci && nombre && !globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
+          if (placa && placa !== "" && !globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
         }
       }
+      // Renderizar ambas vistas tras procesar el archivo masivo
+      currentDriverPage = 1;
+      currentPlatePage = 1;
+      renderDrivers();
+      renderPlates();
     };
     reader.readAsText(file);
     e.target.value = '';
