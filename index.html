@@ -734,16 +734,10 @@
 </div>
 
 <script>
-  // CONFIGURACIÓN SUPABASE - REEMPLAZA CON TUS CREDENCIALES REALES
-  const SUPABASE_URL = "https://yzkqfrhfnpvpcuobpdrc.supabase.co";
-  const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY_AQUI";
-  
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   // ARRAYS PARA DATA MEMORIA INTERNA
   let globalDrivers = [];
   let globalPlates = [];
-  let globalClients = [];
+  let globalClients = []; // Nuevo almacén para clientes
 
   // CONFIGURACIÓN DE PAGINACIÓN (50 REGISTROS POR PÁGINA)
   const ITEMS_PER_PAGE = 50;
@@ -774,15 +768,18 @@
 
   // NAVEGACIÓN ENTRE SUB-PESTAÑAS INTERNAS DE LA DATA MAESTRA
   function switchSubTab(target) {
+    // Apagar todas las rejillas
     document.getElementById('grid-conductores').classList.remove('active');
     document.getElementById('grid-placas').classList.remove('active');
     document.getElementById('grid-clientes').classList.remove('active');
 
+    // Desactivar estilos de todos los botones de sub-pestaña
     const tabs = document.querySelectorAll('.id-tab');
     tabs.forEach(t => {
       t.classList.remove('active', 'active-orange', 'active-purple');
     });
 
+    // Activar la seleccionada
     if (target === 'conductores') {
       document.getElementById('grid-conductores').classList.add('active');
       tabs[0].classList.add('active');
@@ -920,55 +917,29 @@
     currentClientPage = 1; renderClients();
   });
 
-  // SUBMITS DE LOS FORMULARIOS MANUALES E INTEGRACIÓN CON SUPABASE
-  document.getElementById('driverForm').addEventListener('submit', async function(e) {
+  // SUBMITS DE LOS FORMULARIOS MANUALEZ
+  document.getElementById('driverForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const ci = document.getElementById('inputCI').value.toUpperCase().trim();
     const nombre = document.getElementById('inputNombre').value.toUpperCase().trim();
-    
     if(!globalDrivers.some(d => d.ci === ci)) {
-      // 1. Envío asíncrono a Supabase
-      const { error } = await supabase
-        .from('conductores')
-        .insert([{ ci: ci, nombre: nombre }]);
-
-      if (error) {
-        console.error("Error al guardar conductor en Supabase:", error.message);
-        alert("No se pudo guardar en la base de datos distribuida: " + error.message);
-        return;
-      }
-
-      // 2. Actualización local sólo si la BD responde OK
       globalDrivers.push({ ci, nombre });
       renderDrivers();
     }
     this.reset();
   });
 
-  document.getElementById('plateForm').addEventListener('submit', async function(e) {
+  document.getElementById('plateForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const placa = document.getElementById('inputPlacaOnly').value.toUpperCase().trim();
-    
     if(!globalPlates.some(p => p.placa === placa)) {
-      // 1. Envío asíncrono a Supabase
-      const { error } = await supabase
-        .from('placas')
-        .insert([{ placa: placa }]);
-
-      if (error) {
-        console.error("Error al guardar placa en Supabase:", error.message);
-        alert("No se pudo guardar en la base de datos distribuida: " + error.message);
-        return;
-      }
-
-      // 2. Actualización local
       globalPlates.push({ placa });
       renderPlates();
     }
     this.reset();
   });
 
-  document.getElementById('clientForm').addEventListener('submit', async function(e) {
+  document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const code = document.getElementById('inputClientCode').value.toUpperCase().trim();
     const name = document.getElementById('inputClientName').value.toUpperCase().trim();
@@ -980,65 +951,68 @@
     }
 
     if(!globalClients.some(c => c.code === code)) {
-      // 1. Envío asíncrono a Supabase
-      const { error } = await supabase
-        .from('clientes')
-        .insert([{ code: code, name: name, transport: transport }]);
-
-      if (error) {
-        console.error("Error al guardar cliente en Supabase:", error.message);
-        alert("No se pudo guardar en la base de datos distribuida: " + error.message);
-        return;
-      }
-
-      // 2. Actualización local
       globalClients.push({ code, name, transport });
       renderClients();
     }
     this.reset();
-    toggleManualTransport('PARTICULAR');
+    toggleManualTransport('PARTICULAR'); // Resetea el campo oculto
   });
 
-  // CARGA MASIVA DE ARRAYS (EXCEL/CSV)
+  // CARGA MASIVA DE ARRAYS (EXCEL/CSV) CORREGIDA
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
-      const text = e.target.result;
-      const lines = text.split('\n');
+    reader.onload = function(evt) {
+      const text = evt.target.result;
+      // .split(/\r?\n/) se encarga de eliminar correctamente los saltos de línea tanto de Windows como de Linux/Mac
+      const lines = text.split(/\r?\n/); 
       
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue;
+        
+        // Soporte para separación por punto y coma (Excel estándar en español) o comas
         const columns = lines[i].includes(';') ? lines[i].split(';') : lines[i].split(',');
         
-        if (columns.length === 2) {
+        if (columns.length === 1) {
+          const placa = columns[0].trim().toUpperCase();
+          if (placa && !globalPlates.some(p => p.placa === placa)) {
+            globalPlates.push({ placa });
+          }
+        }
+        else if (columns.length === 2) {
           const ci = columns[0].trim().toUpperCase();
           const nombre = columns[1].trim().toUpperCase();
-          if(ci && !globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
+          if (ci && !globalDrivers.some(d => d.ci === ci)) {
+            globalDrivers.push({ ci, nombre });
+          }
         } 
-        else if (columns.length === 1) {
-          const placa = columns[0].trim().toUpperCase();
-          if(placa && !globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
-        }
         else if (columns.length >= 3) {
           const ci = columns[0].trim().toUpperCase();
           const nombre = columns[1].trim().toUpperCase();
           const placa = columns[2].trim().toUpperCase();
           
-          if (ci && nombre && !globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
-          if (placa && placa !== "" && !globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
+          if (ci && nombre && !globalDrivers.some(d => d.ci === ci)) {
+            globalDrivers.push({ ci, nombre });
+          }
+          if (placa && placa !== "" && !globalPlates.some(p => p.placa === placa)) {
+            globalPlates.push({ placa });
+          }
         }
       }
-      currentDriverPage = 1; currentPlatePage = 1;
-      renderDrivers(); renderPlates();
+      
+      // Reiniciar páginas a la 1 y forzar redibujado de las tablas
+      currentDriverPage = 1; 
+      currentPlatePage = 1;
+      renderDrivers(); 
+      renderPlates();
     };
     reader.readAsText(file);
-    e.target.value = '';
+    e.target.value = ''; // Limpia el input para poder subir el mismo archivo consecutivamente si es necesario
   });
 
-  // Cargar estados iniciales de las listas locales
+  // Cargar estados iniciales
   renderDrivers();
   renderPlates();
 </script>
