@@ -63,10 +63,6 @@
       color: white;
       box-shadow: 0 10px 15px -3px rgba(6, 78, 59, 0.4);
     }
-    .logo-icon svg {
-      width: 1.25rem;
-      height: 1.25rem;
-    }
     .logo-text-main {
       font-size: 0.875rem;
       font-weight: 900;
@@ -203,6 +199,7 @@
       border-bottom: 1px solid #1e293b;
       padding-bottom: 0.5rem;
       margin-bottom: 1.5rem;
+      flex-wrap: wrap;
     }
     .tab-btn {
       padding: 0.5rem 1rem;
@@ -233,6 +230,12 @@
       color: #c084fc;
       font-weight: 700;
       border: 1px solid rgba(192, 132, 252, 0.3);
+    }
+    .tab-btn.active-cyan {
+      background-color: rgba(6, 182, 212, 0.2);
+      color: #22d3ee;
+      font-weight: 700;
+      border: 1px solid rgba(6, 182, 212, 0.3);
     }
 
     /* DISEÑO ESTRUCTURAL DE LA DATA MAESTRA */
@@ -312,6 +315,8 @@
     .submit-btn-orange:hover { background-color: #f59e0b; }
     .submit-btn-purple { background-color: #7e22ce; }
     .submit-btn-purple:hover { background-color: #a855f7; }
+    .submit-btn-cyan { background-color: #0891b2; }
+    .submit-btn-cyan:hover { background-color: #06b6d4; }
 
     /* FILTROS DE BÚSQUEDA INTERNOS */
     .search-box {
@@ -397,6 +402,7 @@
     .font-mono-emerald { font-family: monospace; color: #34d399; font-weight: 600; }
     .font-mono-amber { font-family: monospace; color: #fbbf24; font-weight: 600; }
     .font-mono-purple { font-family: monospace; color: #c084fc; font-weight: 600; }
+    .font-mono-cyan { font-family: monospace; color: #22d3ee; font-weight: 600; }
     
     .badge-plate {
       background-color: rgba(245, 158, 11, 0.1);
@@ -415,6 +421,21 @@
       border: 1px solid rgba(192, 132, 252, 0.3);
       color: #c084fc;
       display: inline-block;
+    }
+
+    /* BOTONES DE ACCIÓN (EDITAR / ELIMINAR) */
+    .action-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.25rem;
+      border-radius: 0.25rem;
+      transition: background 0.2s;
+      margin-right: 0.25rem;
+    }
+    .action-btn:hover {
+      background-color: #1e293b;
     }
 
     .generic-view-header {
@@ -442,11 +463,7 @@
   <aside class="sidebar">
     <div class="sidebar-padding">
       <div class="logo-section">
-        <div class="logo-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-          </svg>
-        </div>
+        <div class="logo-icon">LM</div>
         <div>
           <span class="logo-text-main">LOGIC SC</span>
           <span class="logo-text-sub">Gestión Agroindustrial</span>
@@ -507,7 +524,7 @@
             <span class="status-badge">ACTIVO</span>
           </div>
           <button class="nav-item active" onclick="switchView('data-maestra', this)">
-            <span class="nav-item-inner"><span>⚙️</span> Conductores y Placas [BD]</span>
+            <span class="nav-item-inner"><span>⚙️</span> Motores de Base Maestra</span>
           </button>
           <button class="nav-item" onclick="switchView('motor-bd', this)">
             <span class="nav-item-inner"><span>🖥️</span> Estado de Servidores BD</span>
@@ -520,7 +537,7 @@
   <!-- CONTENEDOR CENTRAL -->
   <main class="main-content">
     <header class="main-header">
-      <div class="header-title" id="header-title">⚙️ Conductores y Placas [BD]</div>
+      <div class="header-title" id="header-title">⚙️ Motores de Base Maestra</div>
       <div class="header-sync">Última sincronización: En tiempo real</div>
     </header>
 
@@ -531,14 +548,30 @@
           <button class="tab-btn id-tab active" onclick="switchSubTab('conductores')">👤 Conductores Maestra</button>
           <button class="tab-btn id-tab" onclick="switchSubTab('placas')">🚛 Placas Libres</button>
           <button class="tab-btn id-tab" onclick="switchSubTab('clientes')">🏢 Clientes y Aliados</button>
+          <button class="tab-btn id-tab" onclick="switchSubTab('productos')">🌾 Productos Maestra</button>
+        </div>
+
+        <!-- CONTENEDOR EXCEL GLOBAL -->
+        <div class="panel-card" style="border-color: #0369a1; margin-bottom: 1.5rem; padding: 1rem; flex-direction: row; justify-content: space-between; align-items: center; width: 100%;">
+          <div>
+            <h2 class="card-title" style="color:#38bdf8; font-size: 0.95rem; margin-bottom: 2px;">📂 Carga Masiva Inteligente (CSV / Excel)</h2>
+            <p class="card-subtitle" style="margin-bottom: 0;" id="csvHelperText">Sube un archivo compatible con la pestaña de Conductores.</p>
+          </div>
+          <div>
+            <label for="csvFileInput" style="display: inline-block; background-color: #1e293b; border: 1px solid #334155; color: #38bdf8; font-weight: 700; font-size: 0.813rem; padding: 0.5rem 1rem; border-radius: 0.5rem; text-align: center; cursor: pointer;">
+              📊 Importar Archivo
+            </label>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+          </div>
         </div>
 
         <!-- SUBVISTA 1: CONDUCTORES -->
         <div id="grid-conductores" class="view-grid-master active">
           <div class="panel-card">
-            <h2 class="card-title"><span style="color:#10b981;">✚</span> Registrar Conductor</h2>
+            <h2 class="card-title" id="driverFormTitle"><span style="color:#10b981;">✚</span> Registrar Conductor</h2>
             <p class="card-subtitle">Asignación de datos del transportista.</p>
             <form id="driverForm">
+              <input type="hidden" id="editDriverIndex">
               <div class="form-group">
                 <label>C.I. / Identificación</label>
                 <input type="text" id="inputCI" placeholder="Ej: V-12345678" required>
@@ -547,16 +580,8 @@
                 <label>Nombre Completo</label>
                 <input type="text" id="inputNombre" placeholder="Ej: RAMON PEREZ" required>
               </div>
-              <button type="submit" class="submit-btn">Guardar Conductor</button>
+              <button type="submit" class="submit-btn" id="driverSubmitBtn">Guardar Conductor</button>
             </form>
-
-            <div class="panel-card" style="border-color: #0369a1; margin-top: 1rem; padding: 1rem; width: 100%;">
-              <h2 class="card-title" style="color:#38bdf8; font-size: 0.875rem;">📂 Carga Masiva (CSV)</h2>
-              <label for="csvFileInput" style="display: block; width: 100%; background-color: #1e293b; border: 2px dashed #334155; color: #38bdf8; font-weight: 700; font-size: 0.75rem; padding: 0.5rem; border-radius: 0.5rem; text-align: center; cursor: pointer;">
-                📊 Seleccionar archivo .csv
-              </label>
-              <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
-            </div>
           </div>
 
           <div class="panel-card">
@@ -568,7 +593,7 @@
             <div class="table-container">
               <table>
                 <thead>
-                  <tr><th>C.I. / Identificación</th><th>Nombre Completo</th></tr>
+                  <tr><th>C.I. / Identificación</th><th>Nombre Completo</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="driverTableBody"></tbody>
               </table>
@@ -586,14 +611,15 @@
         <!-- SUBVISTA 2: PLACAS -->
         <div id="grid-placas" class="view-grid-master">
           <div class="panel-card">
-            <h2 class="card-title"><span style="color:#f59e0b;">✚</span> Registrar Placa Libre</h2>
+            <h2 class="card-title" id="plateFormTitle"><span style="color:#f59e0b;">✚</span> Registrar Placa</h2>
             <p class="card-subtitle">Registro de unidades disponibles para fletes.</p>
             <form id="plateForm">
+              <input type="hidden" id="editPlateIndex">
               <div class="form-group">
-                <label style="color:#fbbf24;">Número de Placa (Batea/Chuto)</label>
+                <label style="color:#fbbf24;">Número de Placa</label>
                 <input type="text" id="inputPlacaOnly" placeholder="Ej: A12B34C" required>
               </div>
-              <button type="submit" class="submit-btn submit-btn-orange">Guardar Placa Libre</button>
+              <button type="submit" class="submit-btn submit-btn-orange" id="plateSubmitBtn">Guardar Placa</button>
             </form>
           </div>
 
@@ -606,7 +632,7 @@
             <div class="table-container">
               <table>
                 <thead>
-                  <tr><th>Código de Placa</th><th>Estado Operativo</th></tr>
+                  <tr><th>Código de Placa</th><th>Estado Operativo</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="plateTableBody"></tbody>
               </table>
@@ -624,12 +650,13 @@
         <!-- SUBVISTA 3: CLIENTES Y ALIADOS -->
         <div id="grid-clientes" class="view-grid-master">
           <div class="panel-card">
-            <h2 class="card-title"><span style="color:#c084fc;">✚</span> Registrar Cliente</h2>
+            <h2 class="card-title" id="clientFormTitle"><span style="color:#c084fc;">✚</span> Registrar Cliente</h2>
             <p class="card-subtitle">Asignación de código, razón social y transporte.</p>
             <form id="clientForm">
+              <input type="hidden" id="editClientIndex">
               <div class="form-group">
                 <label style="color:#c084fc;">Código / RIF</label>
-                <input type="text" id="inputClientCode" placeholder="Ej: J-12345678-0 o CL-001" required>
+                <input type="text" id="inputClientCode" placeholder="Ej: J-12345678-0" required>
               </div>
               <div class="form-group">
                 <label style="color:#c084fc;">Nombre del Cliente</label>
@@ -646,12 +673,11 @@
                   <option value="MANUAL">OTRO (Ingresar manual)...</option>
                 </select>
               </div>
-              <!-- Campo oculto inicialmente para transporte personalizado -->
               <div class="form-group" id="manualTransportGroup" style="display: none;">
                 <label style="color:#a855f7;">Especificar Transporte</label>
                 <input type="text" id="inputManualTransport" placeholder="Ej: TRANSPORTE EXPRESO">
               </div>
-              <button type="submit" class="submit-btn submit-btn-purple">Guardar Cliente</button>
+              <button type="submit" class="submit-btn submit-btn-purple" id="clientSubmitBtn">Guardar Cliente</button>
             </form>
           </div>
 
@@ -664,11 +690,7 @@
             <div class="table-container">
               <table>
                 <thead>
-                  <tr>
-                    <th>Código / RIF</th>
-                    <th>Nombre Cliente</th>
-                    <th>Transporte</th>
-                  </tr>
+                  <tr><th>Código / RIF</th><th>Nombre Cliente</th><th>Transporte</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="clientTableBody"></tbody>
               </table>
@@ -682,6 +704,50 @@
             </div>
           </div>
         </div>
+
+        <!-- SUBVISTA 4: PRODUCTOS (NUEVA) -->
+        <div id="grid-productos" class="view-grid-master">
+          <div class="panel-card">
+            <h2 class="card-title" id="productFormTitle"><span style="color:#06b6d4;">✚</span> Registrar Producto</h2>
+            <p class="card-subtitle">Control e inventario técnico de rubros.</p>
+            <form id="productForm">
+              <input type="hidden" id="editProductIndex">
+              <div class="form-group">
+                <label style="color:#22d3ee;">Código del Producto</label>
+                <input type="text" id="inputProductCode" placeholder="Ej: PROD-01" required>
+              </div>
+              <div class="form-group">
+                <label style="color:#22d3ee;">Nombre de Rubro / Producto</label>
+                <input type="text" id="inputProductName" placeholder="Ej: MAÍZ AMARILLO EN GRANEL" required>
+              </div>
+              <button type="submit" class="submit-btn submit-btn-cyan" id="productSubmitBtn">Guardar Producto</button>
+            </form>
+          </div>
+
+          <div class="panel-card">
+            <div class="table-header-flex">
+              <h2 class="card-title" style="margin-bottom:0; color:#06b6d4;">🌾 Catálogo de Productos</h2>
+              <span id="productCount" style="font-size:0.75rem; color:#06b6d4; font-weight:bold;">0 Rubros</span>
+            </div>
+            <input type="text" id="productSearch" class="search-box" placeholder="🔍 Buscar por código o descripción...">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>Código</th><th>Descripción</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="productTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar">
+              <span class="pagination-info" id="productPageInfo">Pág. 1 de 1</span>
+              <div class="pagination-actions">
+                <button class="page-btn" id="productPrevBtn" onclick="changeProductPage(-1)" disabled>◀</button>
+                <button class="page-btn" id="productNextBtn" onclick="changeProductPage(1)" disabled>▶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- DEMÁS SECCIONES (SKELETONS) -->
@@ -734,21 +800,27 @@
 </div>
 
 <script>
+  // VARIABLES DE CONTROL DE VISTA ACTIVA INTERNA
+  let currentActiveTab = "conductores";
+
   // ARRAYS PARA DATA MEMORIA INTERNA
   let globalDrivers = [];
   let globalPlates = [];
-  let globalClients = []; // Nuevo almacén para clientes
+  let globalClients = [];
+  let globalProducts = [];
 
   // CONFIGURACIÓN DE PAGINACIÓN (50 REGISTROS POR PÁGINA)
   const ITEMS_PER_PAGE = 50;
   let currentDriverPage = 1;
   let currentPlatePage = 1;
   let currentClientPage = 1;
+  let currentProductPage = 1;
 
   // FILTROS DE BÚSQUEDA ACTIVOS
   let driverSearchQuery = "";
   let plateSearchQuery = "";
   let clientSearchQuery = "";
+  let productSearchQuery = "";
 
   // CONTROL DE NAVEGACIÓN PRINCIPAL (SIDEBAR)
   function switchView(viewId, element) {
@@ -768,32 +840,39 @@
 
   // NAVEGACIÓN ENTRE SUB-PESTAÑAS INTERNAS DE LA DATA MAESTRA
   function switchSubTab(target) {
-    // Apagar todas las rejillas
+    currentActiveTab = target;
+    
     document.getElementById('grid-conductores').classList.remove('active');
     document.getElementById('grid-placas').classList.remove('active');
     document.getElementById('grid-clientes').classList.remove('active');
+    document.getElementById('grid-productos').classList.remove('active');
 
-    // Desactivar estilos de todos los botones de sub-pestaña
     const tabs = document.querySelectorAll('.id-tab');
-    tabs.forEach(t => {
-      t.classList.remove('active', 'active-orange', 'active-purple');
-    });
+    tabs.forEach(t => t.classList.remove('active', 'active-orange', 'active-purple', 'active-cyan'));
 
-    // Activar la seleccionada
+    const helper = document.getElementById('csvHelperText');
+
     if (target === 'conductores') {
       document.getElementById('grid-conductores').classList.add('active');
       tabs[0].classList.add('active');
+      helper.innerText = "Sube un archivo compatible con la pestaña de Conductores (Columnas: CI, Nombre).";
     } else if (target === 'placas') {
       document.getElementById('grid-placas').classList.add('active');
       tabs[1].classList.add('active-orange');
+      helper.innerText = "Sube un archivo compatible con la pestaña de Placas (Columna: Placa).";
     } else if (target === 'clientes') {
       document.getElementById('grid-clientes').classList.add('active');
       tabs[2].classList.add('active-purple');
+      helper.innerText = "Sube un archivo compatible con Clientes (Columnas: RIF, Nombre, Transporte).";
       renderClients();
+    } else if (target === 'productos') {
+      document.getElementById('grid-productos').classList.add('active');
+      tabs[3].classList.add('active-cyan');
+      helper.innerText = "Sube un archivo compatible con Productos (Columnas: Código, Nombre Producto).";
+      renderProducts();
     }
   }
 
-  // MOSTRAR O OCULTAR CAMPO MANUAL SEGÚN LA SELECCIÓN DE TRANSPORTE
   function toggleManualTransport(val) {
     const group = document.getElementById('manualTransportGroup');
     const input = document.getElementById('inputManualTransport');
@@ -807,158 +886,253 @@
     }
   }
 
-  // RENDERIZADO INTELIGENTE DE CONDUCTORES
+  // ==================== RENDERS DE TABLAS ====================
   function renderDrivers() {
     const tbody = document.getElementById('driverTableBody');
     if (!tbody) return;
-
-    const filtered = globalDrivers.filter(d => 
-      d.ci.includes(driverSearchQuery) || d.nombre.includes(driverSearchQuery)
-    );
-
+    const filtered = globalDrivers.filter(d => d.ci.includes(driverSearchQuery) || d.nombre.includes(driverSearchQuery));
     document.getElementById('driverCount').innerText = `${globalDrivers.length} Activos`;
-
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
     if (currentDriverPage > totalPages) currentDriverPage = totalPages;
-
     const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, end);
+    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
 
     tbody.innerHTML = "";
-    pageItems.forEach(d => {
+    pageItems.forEach((d, index) => {
+      const realIndex = globalDrivers.findIndex(item => item.ci === d.ci);
       const row = document.createElement('tr');
-      row.innerHTML = `<td class="font-mono-emerald">${d.ci}</td><td style="color:#f8fafc; font-weight:500;">${d.nombre}</td>`;
+      row.innerHTML = `
+        <td class="font-mono-emerald">${d.ci}</td>
+        <td style="color:#f8fafc; font-weight:500;">${d.nombre}</td>
+        <td>
+          <button class="action-btn" onclick="editDriver(${realIndex})">✏️</button>
+          <button class="action-btn" onclick="deleteDriver(${realIndex})">🗑️</button>
+        </td>`;
       tbody.appendChild(row);
     });
-
     document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
     document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
     document.getElementById('driverNextBtn').disabled = (currentDriverPage === totalPages);
   }
 
-  // RENDERIZADO INTELIGENTE DE PLACAS
   function renderPlates() {
     const tbody = document.getElementById('plateTableBody');
     if (!tbody) return;
-
     const filtered = globalPlates.filter(p => p.placa.includes(plateSearchQuery));
     document.getElementById('plateCount').innerText = `${globalPlates.length} Libres`;
-
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
     if (currentPlatePage > totalPages) currentPlatePage = totalPages;
-
     const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, end);
+    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
 
     tbody.innerHTML = "";
-    pageItems.forEach(p => {
+    pageItems.forEach((p, index) => {
+      const realIndex = globalPlates.findIndex(item => item.placa === p.placa);
       const row = document.createElement('tr');
-      row.innerHTML = `<td><span class="badge-plate">${p.placa}</span></td><td class="font-mono-amber">DISPONIBLE</td>`;
+      row.innerHTML = `
+        <td><span class="badge-plate">${p.placa}</span></td>
+        <td class="font-mono-amber">DISPONIBLE</td>
+        <td>
+          <button class="action-btn" onclick="editPlate(${realIndex})">✏️</button>
+          <button class="action-btn" onclick="deletePlate(${realIndex})">🗑️</button>
+        </td>`;
       tbody.appendChild(row);
     });
-
     document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
     document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
     document.getElementById('plateNextBtn').disabled = (currentPlatePage === totalPages);
   }
 
-  // RENDERIZADO INTELIGENTE DE CLIENTES
   function renderClients() {
     const tbody = document.getElementById('clientTableBody');
     if (!tbody) return;
-
-    const filtered = globalClients.filter(c => 
-      c.code.includes(clientSearchQuery) || c.name.includes(clientSearchQuery) || c.transport.includes(clientSearchQuery)
-    );
-
+    const filtered = globalClients.filter(c => c.code.includes(clientSearchQuery) || c.name.includes(clientSearchQuery));
     document.getElementById('clientCount').innerText = `${globalClients.length} Registrados`;
-
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
     if (currentClientPage > totalPages) currentClientPage = totalPages;
-
     const start = (currentClientPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, end);
+    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
 
     tbody.innerHTML = "";
-    pageItems.forEach(c => {
+    pageItems.forEach((c, index) => {
+      const realIndex = globalClients.findIndex(item => item.code === c.code);
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-purple">${c.code}</td>
         <td style="color:#f8fafc; font-weight:500;">${c.name}</td>
         <td><span class="badge-transport">${c.transport}</span></td>
-      `;
+        <td>
+          <button class="action-btn" onclick="editClient(${realIndex})">✏️</button>
+          <button class="action-btn" onclick="deleteClient(${realIndex})">🗑️</button>
+        </td>`;
       tbody.appendChild(row);
     });
-
     document.getElementById('clientPageInfo').innerText = `Pág. ${currentClientPage} de ${totalPages}`;
     document.getElementById('clientPrevBtn').disabled = (currentClientPage === 1);
     document.getElementById('clientNextBtn').disabled = (currentClientPage === totalPages);
   }
 
-  // ACCIONES DE LOS PAGINADORES
-  function changeDriverPage(direction) { currentDriverPage += direction; renderDrivers(); }
-  function changePlatePage(direction) { currentPlatePage += direction; renderPlates(); }
-  function changeClientPage(direction) { currentClientPage += direction; renderClients(); }
+  function renderProducts() {
+    const tbody = document.getElementById('productTableBody');
+    if (!tbody) return;
+    const filtered = globalProducts.filter(p => p.code.includes(productSearchQuery) || p.name.includes(productSearchQuery));
+    document.getElementById('productCount').innerText = `${globalProducts.length} Rubros`;
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+    if (currentProductPage > totalPages) currentProductPage = totalPages;
+    const start = (currentProductPage - 1) * ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
 
-  // LISTENERS DE BÚSQUEDA (TIEMPO REAL)
-  document.getElementById('driverSearch').addEventListener('input', function(e) {
-    driverSearchQuery = e.target.value.toUpperCase().trim();
-    currentDriverPage = 1; renderDrivers();
-  });
-  document.getElementById('plateSearch').addEventListener('input', function(e) {
-    plateSearchQuery = e.target.value.toUpperCase().trim();
-    currentPlatePage = 1; renderPlates();
-  });
-  document.getElementById('clientSearch').addEventListener('input', function(e) {
-    clientSearchQuery = e.target.value.toUpperCase().trim();
-    currentClientPage = 1; renderClients();
-  });
+    tbody.innerHTML = "";
+    pageItems.forEach((p, index) => {
+      const realIndex = globalProducts.findIndex(item => item.code === p.code);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="font-mono-cyan">${p.code}</td>
+        <td style="color:#f8fafc; font-weight:500;">${p.name}</td>
+        <td>
+          <button class="action-btn" onclick="editProduct(${realIndex})">✏️</button>
+          <button class="action-btn" onclick="deleteProduct(${realIndex})">🗑️</button>
+        </td>`;
+      tbody.appendChild(row);
+    });
+    document.getElementById('productPageInfo').innerText = `Pág. ${currentProductPage} de ${totalPages}`;
+    document.getElementById('productPrevBtn').disabled = (currentProductPage === 1);
+    document.getElementById('productNextBtn').disabled = (currentProductPage === totalPages);
+  }
 
-  // SUBMITS DE LOS FORMULARIOS MANUALEZ
+  // PAGINADORES
+  function changeDriverPage(dir) { currentDriverPage += dir; renderDrivers(); }
+  function changePlatePage(dir) { currentPlatePage += dir; renderPlates(); }
+  function changeClientPage(dir) { currentClientPage += dir; renderClients(); }
+  function changeProductPage(dir) { currentProductPage += dir; renderProducts(); }
+
+  // LISTENERS DE BÚSQUEDA
+  document.getElementById('driverSearch').addEventListener('input', e => { driverSearchQuery = e.target.value.toUpperCase().trim(); currentDriverPage = 1; renderDrivers(); });
+  document.getElementById('plateSearch').addEventListener('input', e => { plateSearchQuery = e.target.value.toUpperCase().trim(); currentPlatePage = 1; renderPlates(); });
+  document.getElementById('clientSearch').addEventListener('input', e => { clientSearchQuery = e.target.value.toUpperCase().trim(); currentClientPage = 1; renderClients(); });
+  document.getElementById('productSearch').addEventListener('input', e => { productSearchQuery = e.target.value.toUpperCase().trim(); currentProductPage = 1; renderProducts(); });
+
+  // ==================== OPERACIONES CRUD (MANUALES) ====================
+  
+  // DRIVERS
   document.getElementById('driverForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const ci = document.getElementById('inputCI').value.toUpperCase().trim();
     const nombre = document.getElementById('inputNombre').value.toUpperCase().trim();
-    if(!globalDrivers.some(d => d.ci === ci)) {
-      globalDrivers.push({ ci, nombre });
-      renderDrivers();
-    }
-    this.reset();
-  });
+    const idx = document.getElementById('editDriverIndex').value;
 
+    if(idx === "") { // Crear
+      if(!globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
+    } else { // Editar
+      globalDrivers[idx] = { ci, nombre };
+      document.getElementById('editDriverIndex').value = "";
+      document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
+      document.getElementById('driverSubmitBtn').innerText = "Guardar Conductor";
+    }
+    this.reset(); renderDrivers();
+  });
+  function editDriver(idx) {
+    const d = globalDrivers[idx];
+    document.getElementById('inputCI').value = d.ci;
+    document.getElementById('inputNombre').value = d.nombre;
+    document.getElementById('editDriverIndex').value = idx;
+    document.getElementById('driverFormTitle').innerHTML = `📝 Modificar Conductor`;
+    document.getElementById('driverSubmitBtn').innerText = "Actualizar Datos";
+  }
+  function deleteDriver(idx) { if(confirm("¿Eliminar conductor?")) { globalDrivers.splice(idx,1); renderDrivers(); } }
+
+  // PLATES
   document.getElementById('plateForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const placa = document.getElementById('inputPlacaOnly').value.toUpperCase().trim();
-    if(!globalPlates.some(p => p.placa === placa)) {
-      globalPlates.push({ placa });
-      renderPlates();
-    }
-    this.reset();
-  });
+    const idx = document.getElementById('editPlateIndex').value;
 
+    if(idx === "") {
+      if(!globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
+    } else {
+      globalPlates[idx] = { placa };
+      document.getElementById('editPlateIndex').value = "";
+      document.getElementById('plateFormTitle').innerHTML = `<span style="color:#f59e0b;">✚</span> Registrar Placa`;
+      document.getElementById('plateSubmitBtn').innerText = "Guardar Placa";
+    }
+    this.reset(); renderPlates();
+  });
+  function editPlate(idx) {
+    document.getElementById('inputPlacaOnly').value = globalPlates[idx].placa;
+    document.getElementById('editPlateIndex').value = idx;
+    document.getElementById('plateFormTitle').innerHTML = `📝 Modificar Placa`;
+    document.getElementById('plateSubmitBtn').innerText = "Actualizar Placa";
+  }
+  function deletePlate(idx) { if(confirm("¿Eliminar placa?")) { globalPlates.splice(idx,1); renderPlates(); } }
+
+  // CLIENTS
   document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const code = document.getElementById('inputClientCode').value.toUpperCase().trim();
     const name = document.getElementById('inputClientName').value.toUpperCase().trim();
     const selectValue = document.getElementById('selectClientTransport').value;
-    
-    let transport = selectValue;
-    if(selectValue === 'MANUAL') {
-      transport = document.getElementById('inputManualTransport').value.toUpperCase().trim();
-    }
+    let transport = selectValue === 'MANUAL' ? document.getElementById('inputManualTransport').value.toUpperCase().trim() : selectValue;
+    const idx = document.getElementById('editClientIndex').value;
 
-    if(!globalClients.some(c => c.code === code)) {
-      globalClients.push({ code, name, transport });
-      renderClients();
+    if(idx === "") {
+      if(!globalClients.some(c => c.code === code)) globalClients.push({ code, name, transport });
+    } else {
+      globalClients[idx] = { code, name, transport };
+      document.getElementById('editClientIndex').value = "";
+      document.getElementById('clientFormTitle').innerHTML = `<span style="color:#c084fc;">✚</span> Registrar Cliente`;
+      document.getElementById('clientSubmitBtn').innerText = "Guardar Cliente";
     }
-    this.reset();
-    toggleManualTransport('PARTICULAR'); // Resetea el campo oculto
+    this.reset(); toggleManualTransport('PARTICULAR'); renderClients();
   });
+  function editClient(idx) {
+    const c = globalClients[idx];
+    document.getElementById('inputClientCode').value = c.code;
+    document.getElementById('inputClientName').value = c.name;
+    document.getElementById('editClientIndex').value = idx;
+    document.getElementById('clientFormTitle').innerHTML = `📝 Modificar Cliente`;
+    document.getElementById('clientSubmitBtn').innerText = "Actualizar Cliente";
+    
+    const select = document.getElementById('selectClientTransport');
+    if([...select.options].some(o => o.value === c.transport)) {
+      select.value = c.transport;
+      toggleManualTransport(c.transport);
+    } else {
+      select.value = 'MANUAL';
+      toggleManualTransport('MANUAL');
+      document.getElementById('inputManualTransport').value = c.transport;
+    }
+  }
+  function deleteClient(idx) { if(confirm("¿Eliminar Cliente?")) { globalClients.splice(idx,1); renderClients(); } }
 
-  // CARGA MASIVA DE ARRAYS (EXCEL/CSV) CORREGIDA
+  // PRODUCTS (NUEVO)
+  document.getElementById('productForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const code = document.getElementById('inputProductCode').value.toUpperCase().trim();
+    const name = document.getElementById('inputProductName').value.toUpperCase().trim();
+    const idx = document.getElementById('editProductIndex').value;
+
+    if(idx === "") {
+      if(!globalProducts.some(p => p.code === code)) globalProducts.push({ code, name });
+    } else {
+      globalProducts[idx] = { code, name };
+      document.getElementById('editProductIndex').value = "";
+      document.getElementById('productFormTitle').innerHTML = `<span style="color:#06b6d4;">✚</span> Registrar Producto`;
+      document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
+    }
+    this.reset(); renderProducts();
+  });
+  function editProduct(idx) {
+    const p = globalProducts[idx];
+    document.getElementById('inputProductCode').value = p.code;
+    document.getElementById('inputProductName').value = p.name;
+    document.getElementById('editProductIndex').value = idx;
+    document.getElementById('productFormTitle').innerHTML = `📝 Modificar Producto`;
+    document.getElementById('productSubmitBtn').innerText = "Actualizar Producto";
+  }
+  function deleteProduct(idx) { if(confirm("¿Eliminar Producto del catálogo?")) { globalProducts.splice(idx,1); renderProducts(); } }
+
+
+  // ==================== CARGA MASIVA DE ARRAYS (EXCEL/CSV) ====================
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -966,53 +1140,61 @@
     const reader = new FileReader();
     reader.onload = function(evt) {
       const text = evt.target.result;
-      // .split(/\r?\n/) se encarga de eliminar correctamente los saltos de línea tanto de Windows como de Linux/Mac
       const lines = text.split(/\r?\n/); 
       
-      for (let i = 1; i < lines.length; i++) {
+      for (let i = 0; i < lines.length; i++) {
+        // Si es la fila de encabezados (contiene palabras clave), la saltamos
+        if (i === 0 && (lines[i].toLowerCase().includes('nombre') || lines[i].toLowerCase().includes('codigo') || lines[i].toLowerCase().includes('placa') || lines[i].toLowerCase().includes('ci'))) {
+          continue;
+        }
         if (lines[i].trim() === '') continue;
         
-        // Soporte para separación por punto y coma (Excel estándar en español) o comas
         const columns = lines[i].includes(';') ? lines[i].split(';') : lines[i].split(',');
         
-        if (columns.length === 1) {
-          const placa = columns[0].trim().toUpperCase();
-          if (placa && !globalPlates.some(p => p.placa === placa)) {
-            globalPlates.push({ placa });
-          }
-        }
-        else if (columns.length === 2) {
-          const ci = columns[0].trim().toUpperCase();
-          const nombre = columns[1].trim().toUpperCase();
-          if (ci && !globalDrivers.some(d => d.ci === ci)) {
-            globalDrivers.push({ ci, nombre });
-          }
-        } 
-        else if (columns.length >= 3) {
-          const ci = columns[0].trim().toUpperCase();
-          const nombre = columns[1].trim().toUpperCase();
-          const placa = columns[2].trim().toUpperCase();
-          
+        // Enrutamiento inteligente de datos según la pestaña activa
+        if (currentActiveTab === 'conductores') {
+          const ci = columns[0]?.trim().toUpperCase();
+          const nombre = columns[1]?.trim().toUpperCase();
           if (ci && nombre && !globalDrivers.some(d => d.ci === ci)) {
             globalDrivers.push({ ci, nombre });
           }
-          if (placa && placa !== "" && !globalPlates.some(p => p.placa === placa)) {
+        } 
+        else if (currentActiveTab === 'placas') {
+          const placa = columns[0]?.trim().toUpperCase();
+          if (placa && !globalPlates.some(p => p.placa === placa)) {
             globalPlates.push({ placa });
+          }
+        } 
+        else if (currentActiveTab === 'clientes') {
+          const code = columns[0]?.trim().toUpperCase();
+          const name = columns[1]?.trim().toUpperCase();
+          const transport = columns[2]?.trim().toUpperCase() || "PARTICULAR";
+          if (code && name && !globalClients.some(c => c.code === code)) {
+            globalClients.push({ code, name, transport });
+          }
+        } 
+        else if (currentActiveTab === 'productos') {
+          const code = columns[0]?.trim().toUpperCase();
+          const name = columns[1]?.trim().toUpperCase();
+          if (code && name && !globalProducts.some(p => p.code === code)) {
+            globalProducts.push({ code, name });
           }
         }
       }
       
-      // Reiniciar páginas a la 1 y forzar redibujado de las tablas
-      currentDriverPage = 1; 
-      currentPlatePage = 1;
-      renderDrivers(); 
-      renderPlates();
+      // Forzar redibujado de la tabla activa
+      if (currentActiveTab === 'conductores') { currentDriverPage = 1; renderDrivers(); }
+      if (currentActiveTab === 'placas') { currentPlatePage = 1; renderPlates(); }
+      if (currentActiveTab === 'clientes') { currentClientPage = 1; renderClients(); }
+      if (currentActiveTab === 'productos') { currentProductPage = 1; renderProducts(); }
+      
+      alert("Carga masiva completada exitosamente en la sección actual.");
     };
     reader.readAsText(file);
-    e.target.value = ''; // Limpia el input para poder subir el mismo archivo consecutivamente si es necesario
+    e.target.value = ''; 
   });
 
-  // Cargar estados iniciales
+  // Inicialización de la App
   renderDrivers();
   renderPlates();
 </script>
