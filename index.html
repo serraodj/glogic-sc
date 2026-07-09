@@ -521,7 +521,7 @@
           <p class="nav-title title-db">5. Motores y Respaldos (BD)</p>
           <div class="status-box">
             <span>⚙️ MOTOR DE DATOS (BD)</span>
-            <span class="status-badge">ACTIVO</span>
+            <span class="status-badge" id="supabase-db-badge">CONECTANDO</span>
           </div>
           <button class="nav-item active" onclick="switchView('data-maestra', this)">
             <span class="nav-item-inner"><span>⚙️</span> Motores de Base Maestra</span>
@@ -538,7 +538,7 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title" id="header-title">⚙️ Motores de Base Maestra</div>
-      <div class="header-sync">Última sincronización: En tiempo real</div>
+      <div class="header-sync" id="header-sync-state">Última sincronización: Cargando...</div>
     </header>
 
     <div class="view-wrapper">
@@ -571,7 +571,7 @@
             <h2 class="card-title" id="driverFormTitle"><span style="color:#10b981;">✚</span> Registrar Conductor</h2>
             <p class="card-subtitle">Asignación de datos del transportista.</p>
             <form id="driverForm">
-              <input type="hidden" id="editDriverIndex">
+              <input type="hidden" id="editDriverId">
               <div class="form-group">
                 <label>C.I. / Identificación</label>
                 <input type="text" id="inputCI" placeholder="Ej: V-12345678" required>
@@ -614,7 +614,7 @@
             <h2 class="card-title" id="plateFormTitle"><span style="color:#f59e0b;">✚</span> Registrar Placa</h2>
             <p class="card-subtitle">Registro de unidades disponibles para fletes.</p>
             <form id="plateForm">
-              <input type="hidden" id="editPlateIndex">
+              <input type="hidden" id="editPlateId">
               <div class="form-group">
                 <label style="color:#fbbf24;">Número de Placa</label>
                 <input type="text" id="inputPlacaOnly" placeholder="Ej: A12B34C" required>
@@ -653,7 +653,7 @@
             <h2 class="card-title" id="clientFormTitle"><span style="color:#c084fc;">✚</span> Registrar Cliente</h2>
             <p class="card-subtitle">Asignación de código, razón social y transporte.</p>
             <form id="clientForm">
-              <input type="hidden" id="editClientIndex">
+              <input type="hidden" id="editClientId">
               <div class="form-group">
                 <label style="color:#c084fc;">Código / RIF</label>
                 <input type="text" id="inputClientCode" placeholder="Ej: J-12345678-0" required>
@@ -705,13 +705,13 @@
           </div>
         </div>
 
-        <!-- SUBVISTA 4: PRODUCTOS (NUEVA) -->
+        <!-- SUBVISTA 4: PRODUCTOS -->
         <div id="grid-productos" class="view-grid-master">
           <div class="panel-card">
             <h2 class="card-title" id="productFormTitle"><span style="color:#06b6d4;">✚</span> Registrar Producto</h2>
             <p class="card-subtitle">Control e inventario técnico de rubros.</p>
             <form id="productForm">
-              <input type="hidden" id="editProductIndex">
+              <input type="hidden" id="editProductId">
               <div class="form-group">
                 <label style="color:#22d3ee;">Código del Producto</label>
                 <input type="text" id="inputProductCode" placeholder="Ej: PROD-01" required>
@@ -800,10 +800,18 @@
 </div>
 
 <script>
+  // ==================== CONFIGURACIÓN DE SUPABASE ====================
+  const SUPABASE_URL = "https://yzkqfrhfnpvpcuobpdrc.supabase.co"; 
+  // ¡REEMPLAZA ESTE TEXTO CON TU VERDADERA CLAVE LARGA QUE EMPIEZA POR eyJ...!
+  const SUPABASE_ANON_KEY = "process.env.SUPABASE_KEY"; 
+
+  // Inicializar correctamente usando las variables de arriba
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   // VARIABLES DE CONTROL DE VISTA ACTIVA INTERNA
   let currentActiveTab = "conductores";
 
-  // ARRAYS PARA DATA MEMORIA INTERNA
+  // ARRAYS AUXILIARES PARA RENDERIZADO ACTUAL (PROVENIENTES DE BD)
   let globalDrivers = [];
   let globalPlates = [];
   let globalClients = [];
@@ -856,20 +864,22 @@
       document.getElementById('grid-conductores').classList.add('active');
       tabs[0].classList.add('active');
       helper.innerText = "Sube un archivo compatible con la pestaña de Conductores (Columnas: CI, Nombre).";
+      fetchDrivers();
     } else if (target === 'placas') {
       document.getElementById('grid-placas').classList.add('active');
       tabs[1].classList.add('active-orange');
       helper.innerText = "Sube un archivo compatible con la pestaña de Placas (Columna: Placa).";
+      fetchPlates();
     } else if (target === 'clientes') {
       document.getElementById('grid-clientes').classList.add('active');
       tabs[2].classList.add('active-purple');
       helper.innerText = "Sube un archivo compatible con Clientes (Columnas: RIF, Nombre, Transporte).";
-      renderClients();
+      fetchClients();
     } else if (target === 'productos') {
       document.getElementById('grid-productos').classList.add('active');
       tabs[3].classList.add('active-cyan');
       helper.innerText = "Sube un archivo compatible con Productos (Columnas: Código, Nombre Producto).";
-      renderProducts();
+      fetchProducts();
     }
   }
 
@@ -886,209 +896,324 @@
     }
   }
 
-  // ==================== RENDERS DE TABLAS ====================
-  function renderDrivers() {
+  function updateSyncStatus(msg) {
+    document.getElementById('header-sync-state').innerText = msg;
+  }
+
+  // ==================== CONSULTAS READ DE SUPABASE (FETCH) ====================
+  
+  async function fetchDrivers() {
+    updateSyncStatus("Sincronizando Conductores...");
+    try {
+      let query = supabaseClient.from('conductores').select('*', { count: 'exact' });
+      
+      if (driverSearchQuery) {
+        query = query.or(`ci.ilike.%${driverSearchQuery}%,nombre.ilike.%${driverSearchQuery}%`);
+      }
+      
+      const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
+      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      globalDrivers = data || [];
+      document.getElementById('driverCount').innerText = `${count || 0} Activos`;
+      
+      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
+      document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
+      document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
+      document.getElementById('driverNextBtn').disabled = (currentDriverPage >= totalPages);
+
+      renderDriversTable();
+      updateSyncStatus("Última sincronización: En tiempo real");
+    } catch (err) {
+      console.error(err);
+      updateSyncStatus("⚠️ Error de sincronización");
+    }
+  }
+
+  async function fetchPlates() {
+    updateSyncStatus("Sincronizando Placas...");
+    try {
+      let query = supabaseClient.from('placas').select('*', { count: 'exact' });
+      
+      if (plateSearchQuery) {
+        query = query.ilike('placa', `%${plateSearchQuery}%`);
+      }
+      
+      const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
+      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('placa', { ascending: true });
+
+      if (error) throw error;
+
+      globalPlates = data || [];
+      document.getElementById('plateCount').innerText = `${count || 0} Libres`;
+      
+      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
+      document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
+      document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
+      document.getElementById('plateNextBtn').disabled = (currentPlatePage >= totalPages);
+
+      renderPlatesTable();
+      updateSyncStatus("Última sincronización: En tiempo real");
+    } catch (err) {
+      console.error(err);
+      updateSyncStatus("⚠️ Error de sincronización");
+    }
+  }
+
+  async function fetchClients() {
+    updateSyncStatus("Sincronizando Clientes...");
+    try {
+      let query = supabaseClient.from('clientes').select('*', { count: 'exact' });
+      
+      if (clientSearchQuery) {
+        query = query.or(`code.ilike.%${clientSearchQuery}%,name.ilike.%${clientSearchQuery}%`);
+      }
+      
+      const start = (currentClientPage - 1) * ITEMS_PER_PAGE;
+      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
+
+      if (error) throw error;
+
+      globalClients = data || [];
+      document.getElementById('clientCount').innerText = `${count || 0} Registrados`;
+      
+      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
+      document.getElementById('clientPageInfo').innerText = `Pág. ${currentClientPage} de ${totalPages}`;
+      document.getElementById('clientPrevBtn').disabled = (currentClientPage === 1);
+      document.getElementById('clientNextBtn').disabled = (currentClientPage >= totalPages);
+
+      renderClientsTable();
+      updateSyncStatus("Última sincronización: En tiempo real");
+    } catch (err) {
+      console.error(err);
+      updateSyncStatus("⚠️ Error de sincronización");
+    }
+  }
+
+  async function fetchProducts() {
+    updateSyncStatus("Sincronizando Catálogo...");
+    try {
+      let query = supabaseClient.from('productos').select('*', { count: 'exact' });
+      
+      if (productSearchQuery) {
+        query = query.or(`code.ilike.%${productSearchQuery}%,name.ilike.%${productSearchQuery}%`);
+      }
+      
+      const start = (currentProductPage - 1) * ITEMS_PER_PAGE;
+      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
+
+      if (error) throw error;
+
+      globalProducts = data || [];
+      document.getElementById('productCount').innerText = `${count || 0} Rubros`;
+      
+      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
+      document.getElementById('productPageInfo').innerText = `Pág. ${currentProductPage} de ${totalPages}`;
+      document.getElementById('productPrevBtn').disabled = (currentProductPage === 1);
+      document.getElementById('productNextBtn').disabled = (currentProductPage >= totalPages);
+
+      renderProductsTable();
+      updateSyncStatus("Última sincronización: En tiempo real");
+    } catch (err) {
+      console.error(err);
+      updateSyncStatus("⚠️ Error de sincronización");
+    }
+  }
+
+  // ==================== RENDERS DE TABLAS DOM ====================
+  function renderDriversTable() {
     const tbody = document.getElementById('driverTableBody');
     if (!tbody) return;
-    const filtered = globalDrivers.filter(d => d.ci.includes(driverSearchQuery) || d.nombre.includes(driverSearchQuery));
-    document.getElementById('driverCount').innerText = `${globalDrivers.length} Activos`;
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-    if (currentDriverPage > totalPages) currentDriverPage = totalPages;
-    const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
-
     tbody.innerHTML = "";
-    pageItems.forEach((d, index) => {
-      const realIndex = globalDrivers.findIndex(item => item.ci === d.ci);
+    globalDrivers.forEach((d) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-emerald">${d.ci}</td>
         <td style="color:#f8fafc; font-weight:500;">${d.nombre}</td>
         <td>
-          <button class="action-btn" onclick="editDriver(${realIndex})">✏️</button>
-          <button class="action-btn" onclick="deleteDriver(${realIndex})">🗑️</button>
+          <button class="action-btn" onclick="editDriver('${d.id}')">✏️</button>
+          <button class="action-btn" onclick="deleteDriver('${d.id}')">🗑️</button>
         </td>`;
       tbody.appendChild(row);
     });
-    document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
-    document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
-    document.getElementById('driverNextBtn').disabled = (currentDriverPage === totalPages);
   }
 
-  function renderPlates() {
+  function renderPlatesTable() {
     const tbody = document.getElementById('plateTableBody');
     if (!tbody) return;
-    const filtered = globalPlates.filter(p => p.placa.includes(plateSearchQuery));
-    document.getElementById('plateCount').innerText = `${globalPlates.length} Libres`;
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-    if (currentPlatePage > totalPages) currentPlatePage = totalPages;
-    const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
-
     tbody.innerHTML = "";
-    pageItems.forEach((p, index) => {
-      const realIndex = globalPlates.findIndex(item => item.placa === p.placa);
+    globalPlates.forEach((p) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><span class="badge-plate">${p.placa}</span></td>
         <td class="font-mono-amber">DISPONIBLE</td>
         <td>
-          <button class="action-btn" onclick="editPlate(${realIndex})">✏️</button>
-          <button class="action-btn" onclick="deletePlate(${realIndex})">🗑️</button>
+          <button class="action-btn" onclick="editPlate('${p.id}')">✏️</button>
+          <button class="action-btn" onclick="deletePlate('${p.id}')">🗑️</button>
         </td>`;
       tbody.appendChild(row);
     });
-    document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
-    document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
-    document.getElementById('plateNextBtn').disabled = (currentPlatePage === totalPages);
   }
 
-  function renderClients() {
+  function renderClientsTable() {
     const tbody = document.getElementById('clientTableBody');
     if (!tbody) return;
-    const filtered = globalClients.filter(c => c.code.includes(clientSearchQuery) || c.name.includes(clientSearchQuery));
-    document.getElementById('clientCount').innerText = `${globalClients.length} Registrados`;
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-    if (currentClientPage > totalPages) currentClientPage = totalPages;
-    const start = (currentClientPage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
-
     tbody.innerHTML = "";
-    pageItems.forEach((c, index) => {
-      const realIndex = globalClients.findIndex(item => item.code === c.code);
+    globalClients.forEach((c) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-purple">${c.code}</td>
         <td style="color:#f8fafc; font-weight:500;">${c.name}</td>
         <td><span class="badge-transport">${c.transport}</span></td>
         <td>
-          <button class="action-btn" onclick="editClient(${realIndex})">✏️</button>
-          <button class="action-btn" onclick="deleteClient(${realIndex})">🗑️</button>
+          <button class="action-btn" onclick="editClient('${c.id}')">✏️</button>
+          <button class="action-btn" onclick="deleteClient('${c.id}')">🗑️</button>
         </td>`;
       tbody.appendChild(row);
     });
-    document.getElementById('clientPageInfo').innerText = `Pág. ${currentClientPage} de ${totalPages}`;
-    document.getElementById('clientPrevBtn').disabled = (currentClientPage === 1);
-    document.getElementById('clientNextBtn').disabled = (currentClientPage === totalPages);
   }
 
-  function renderProducts() {
+  function renderProductsTable() {
     const tbody = document.getElementById('productTableBody');
     if (!tbody) return;
-    const filtered = globalProducts.filter(p => p.code.includes(productSearchQuery) || p.name.includes(productSearchQuery));
-    document.getElementById('productCount').innerText = `${globalProducts.length} Rubros`;
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-    if (currentProductPage > totalPages) currentProductPage = totalPages;
-    const start = (currentProductPage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
-
     tbody.innerHTML = "";
-    pageItems.forEach((p, index) => {
-      const realIndex = globalProducts.findIndex(item => item.code === p.code);
+    globalProducts.forEach((p) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-cyan">${p.code}</td>
         <td style="color:#f8fafc; font-weight:500;">${p.name}</td>
         <td>
-          <button class="action-btn" onclick="editProduct(${realIndex})">✏️</button>
-          <button class="action-btn" onclick="deleteProduct(${realIndex})">🗑️</button>
+          <button class="action-btn" onclick="editProduct('${p.id}')">✏️</button>
+          <button class="action-btn" onclick="deleteProduct('${p.id}')">🗑️</button>
         </td>`;
       tbody.appendChild(row);
     });
-    document.getElementById('productPageInfo').innerText = `Pág. ${currentProductPage} de ${totalPages}`;
-    document.getElementById('productPrevBtn').disabled = (currentProductPage === 1);
-    document.getElementById('productNextBtn').disabled = (currentProductPage === totalPages);
   }
 
   // PAGINADORES
-  function changeDriverPage(dir) { currentDriverPage += dir; renderDrivers(); }
-  function changePlatePage(dir) { currentPlatePage += dir; renderPlates(); }
-  function changeClientPage(dir) { currentClientPage += dir; renderClients(); }
-  function changeProductPage(dir) { currentProductPage += dir; renderProducts(); }
+  function changeDriverPage(dir) { currentDriverPage += dir; fetchDrivers(); }
+  function changePlatePage(dir) { currentPlatePage += dir; fetchPlates(); }
+  function changeClientPage(dir) { currentClientPage += dir; fetchClients(); }
+  function changeProductPage(dir) { currentProductPage += dir; fetchProducts(); }
 
-  // LISTENERS DE BÚSQUEDA
-  document.getElementById('driverSearch').addEventListener('input', e => { driverSearchQuery = e.target.value.toUpperCase().trim(); currentDriverPage = 1; renderDrivers(); });
-  document.getElementById('plateSearch').addEventListener('input', e => { plateSearchQuery = e.target.value.toUpperCase().trim(); currentPlatePage = 1; renderPlates(); });
-  document.getElementById('clientSearch').addEventListener('input', e => { clientSearchQuery = e.target.value.toUpperCase().trim(); currentClientPage = 1; renderClients(); });
-  document.getElementById('productSearch').addEventListener('input', e => { productSearchQuery = e.target.value.toUpperCase().trim(); currentProductPage = 1; renderProducts(); });
+  // LISTENERS DE BÚSQUEDA INPUT
+  document.getElementById('driverSearch').addEventListener('input', e => { driverSearchQuery = e.target.value.toUpperCase().trim(); currentDriverPage = 1; fetchDrivers(); });
+  document.getElementById('plateSearch').addEventListener('input', e => { plateSearchQuery = e.target.value.toUpperCase().trim(); currentPlatePage = 1; fetchPlates(); });
+  document.getElementById('clientSearch').addEventListener('input', e => { clientSearchQuery = e.target.value.toUpperCase().trim(); currentClientPage = 1; fetchClients(); });
+  document.getElementById('productSearch').addEventListener('input', e => { productSearchQuery = e.target.value.toUpperCase().trim(); currentProductPage = 1; fetchProducts(); });
 
-  // ==================== OPERACIONES CRUD (MANUALES) ====================
+  // ==================== OPERACIONES CRUD (PERSISTENCIA COMPLETA) ====================
   
-  // DRIVERS
-  document.getElementById('driverForm').addEventListener('submit', function(e) {
+  // CONDUCTORES
+  document.getElementById('driverForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const ci = document.getElementById('inputCI').value.toUpperCase().trim();
     const nombre = document.getElementById('inputNombre').value.toUpperCase().trim();
-    const idx = document.getElementById('editDriverIndex').value;
+    const id = document.getElementById('editDriverId').value;
 
-    if(idx === "") { // Crear
-      if(!globalDrivers.some(d => d.ci === ci)) globalDrivers.push({ ci, nombre });
-    } else { // Editar
-      globalDrivers[idx] = { ci, nombre };
-      document.getElementById('editDriverIndex').value = "";
-      document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
-      document.getElementById('driverSubmitBtn').innerText = "Guardar Conductor";
-    }
-    this.reset(); renderDrivers();
+    try {
+      if(id === "") { // Crear
+        const { error } = await supabaseClient.from('conductores').insert([{ ci, nombre }]);
+        if (error) throw error;
+      } else { // Editar
+        const { error } = await supabaseClient.from('conductores').update({ ci, nombre }).eq('id', id);
+        if (error) throw error;
+        document.getElementById('editDriverId').value = "";
+        document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
+        document.getElementById('driverSubmitBtn').innerText = "Guardar Conductor";
+      }
+      this.reset(); fetchDrivers();
+    } catch(err) { alert("Error al guardar: " + err.message); }
   });
-  function editDriver(idx) {
-    const d = globalDrivers[idx];
+
+  async function editDriver(id) {
+    const d = globalDrivers.find(item => item.id == id);
+    if(!d) return;
     document.getElementById('inputCI').value = d.ci;
     document.getElementById('inputNombre').value = d.nombre;
-    document.getElementById('editDriverIndex').value = idx;
+    document.getElementById('editDriverId').value = d.id;
     document.getElementById('driverFormTitle').innerHTML = `📝 Modificar Conductor`;
     document.getElementById('driverSubmitBtn').innerText = "Actualizar Datos";
   }
-  function deleteDriver(idx) { if(confirm("¿Eliminar conductor?")) { globalDrivers.splice(idx,1); renderDrivers(); } }
 
-  // PLATES
-  document.getElementById('plateForm').addEventListener('submit', function(e) {
+  async function deleteDriver(id) { 
+    if(confirm("¿Eliminar conductor de la base de datos?")) { 
+      const { error } = await supabaseClient.from('conductores').delete().eq('id', id);
+      if(!error) fetchDrivers(); 
+      else alert(error.message);
+    } 
+  }
+
+  // PLACAS
+  document.getElementById('plateForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const placa = document.getElementById('inputPlacaOnly').value.toUpperCase().trim();
-    const idx = document.getElementById('editPlateIndex').value;
+    const id = document.getElementById('editPlateId').value;
 
-    if(idx === "") {
-      if(!globalPlates.some(p => p.placa === placa)) globalPlates.push({ placa });
-    } else {
-      globalPlates[idx] = { placa };
-      document.getElementById('editPlateIndex').value = "";
-      document.getElementById('plateFormTitle').innerHTML = `<span style="color:#f59e0b;">✚</span> Registrar Placa`;
-      document.getElementById('plateSubmitBtn').innerText = "Guardar Placa";
-    }
-    this.reset(); renderPlates();
+    try {
+      if(id === "") {
+        const { error } = await supabaseClient.from('placas').insert([{ placa }]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseClient.from('placas').update({ placa }).eq('id', id);
+        if (error) throw error;
+        document.getElementById('editPlateId').value = "";
+        document.getElementById('plateFormTitle').innerHTML = `<span style="color:#f59e0b;">✚</span> Registrar Placa`;
+        document.getElementById('plateSubmitBtn').innerText = "Guardar Placa";
+      }
+      this.reset(); fetchPlates();
+    } catch(err) { alert("Error al guardar la placa: " + err.message); }
   });
-  function editPlate(idx) {
-    document.getElementById('inputPlacaOnly').value = globalPlates[idx].placa;
-    document.getElementById('editPlateIndex').value = idx;
+
+  function editPlate(id) {
+    const p = globalPlates.find(item => item.id == id);
+    if(!p) return;
+    document.getElementById('inputPlacaOnly').value = p.placa;
+    document.getElementById('editPlateId').value = p.id;
     document.getElementById('plateFormTitle').innerHTML = `📝 Modificar Placa`;
     document.getElementById('plateSubmitBtn').innerText = "Actualizar Placa";
   }
-  function deletePlate(idx) { if(confirm("¿Eliminar placa?")) { globalPlates.splice(idx,1); renderPlates(); } }
 
-  // CLIENTS
-  document.getElementById('clientForm').addEventListener('submit', function(e) {
+  async function deletePlate(id) { 
+    if(confirm("¿Eliminar placa del servidor?")) { 
+      const { error } = await supabaseClient.from('placas').delete().eq('id', id);
+      if(!error) fetchPlates();
+      else alert(error.message);
+    } 
+  }
+
+  // CLIENTES
+  document.getElementById('clientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const code = document.getElementById('inputClientCode').value.toUpperCase().trim();
     const name = document.getElementById('inputClientName').value.toUpperCase().trim();
     const selectValue = document.getElementById('selectClientTransport').value;
     let transport = selectValue === 'MANUAL' ? document.getElementById('inputManualTransport').value.toUpperCase().trim() : selectValue;
-    const idx = document.getElementById('editClientIndex').value;
+    const id = document.getElementById('editClientId').value;
 
-    if(idx === "") {
-      if(!globalClients.some(c => c.code === code)) globalClients.push({ code, name, transport });
-    } else {
-      globalClients[idx] = { code, name, transport };
-      document.getElementById('editClientIndex').value = "";
-      document.getElementById('clientFormTitle').innerHTML = `<span style="color:#c084fc;">✚</span> Registrar Cliente`;
-      document.getElementById('clientSubmitBtn').innerText = "Guardar Cliente";
-    }
-    this.reset(); toggleManualTransport('PARTICULAR'); renderClients();
+    try {
+      if(id === "") {
+        const { error } = await supabaseClient.from('clientes').insert([{ code, name, transport }]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseClient.from('clientes').update({ code, name, transport }).eq('id', id);
+        if (error) throw error;
+        document.getElementById('editClientId').value = "";
+        document.getElementById('clientFormTitle').innerHTML = `<span style="color:#c084fc;">✚</span> Registrar Cliente`;
+        document.getElementById('clientSubmitBtn').innerText = "Guardar Cliente";
+      }
+      this.reset(); toggleManualTransport('PARTICULAR'); fetchClients();
+    } catch(err) { alert("Error: " + err.message); }
   });
-  function editClient(idx) {
-    const c = globalClients[idx];
+
+  function editClient(id) {
+    const c = globalClients.find(item => item.id == id);
+    if(!c) return;
     document.getElementById('inputClientCode').value = c.code;
     document.getElementById('inputClientName').value = c.name;
-    document.getElementById('editClientIndex').value = idx;
+    document.getElementById('editClientId').value = c.id;
     document.getElementById('clientFormTitle').innerHTML = `📝 Modificar Cliente`;
     document.getElementById('clientSubmitBtn').innerText = "Actualizar Cliente";
     
@@ -1102,48 +1227,69 @@
       document.getElementById('inputManualTransport').value = c.transport;
     }
   }
-  function deleteClient(idx) { if(confirm("¿Eliminar Cliente?")) { globalClients.splice(idx,1); renderClients(); } }
 
-  // PRODUCTS (NUEVO)
-  document.getElementById('productForm').addEventListener('submit', function(e) {
+  async function deleteClient(id) { 
+    if(confirm("¿Eliminar Cliente?")) { 
+      const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
+      if(!error) fetchClients();
+      else alert(error.message);
+    } 
+  }
+
+  // PRODUCTOS
+  document.getElementById('productForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const code = document.getElementById('inputProductCode').value.toUpperCase().trim();
     const name = document.getElementById('inputProductName').value.toUpperCase().trim();
-    const idx = document.getElementById('editProductIndex').value;
+    const id = document.getElementById('editProductId').value;
 
-    if(idx === "") {
-      if(!globalProducts.some(p => p.code === code)) globalProducts.push({ code, name });
-    } else {
-      globalProducts[idx] = { code, name };
-      document.getElementById('editProductIndex').value = "";
-      document.getElementById('productFormTitle').innerHTML = `<span style="color:#06b6d4;">✚</span> Registrar Producto`;
-      document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
-    }
-    this.reset(); renderProducts();
+    try {
+      if(id === "") {
+        const { error } = await supabaseClient.from('productos').insert([{ code, name }]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseClient.from('productos').update({ code, name }).eq('id', id);
+        if (error) throw error;
+        document.getElementById('editProductId').value = "";
+        document.getElementById('productFormTitle').innerHTML = `<span style="color:#06b6d4;">✚</span> Registrar Producto`;
+        document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
+      }
+      this.reset(); fetchProducts();
+    } catch(err) { alert("Error: " + err.message); }
   });
-  function editProduct(idx) {
-    const p = globalProducts[idx];
+
+  function editProduct(id) {
+    const p = globalProducts.find(item => item.id == id);
+    if(!p) return;
     document.getElementById('inputProductCode').value = p.code;
     document.getElementById('inputProductName').value = p.name;
-    document.getElementById('editProductIndex').value = idx;
+    document.getElementById('editProductId').value = p.id;
     document.getElementById('productFormTitle').innerHTML = `📝 Modificar Producto`;
     document.getElementById('productSubmitBtn').innerText = "Actualizar Producto";
   }
-  function deleteProduct(idx) { if(confirm("¿Eliminar Producto del catálogo?")) { globalProducts.splice(idx,1); renderProducts(); } }
+
+  async function deleteProduct(id) { 
+    if(confirm("¿Eliminar Producto del catálogo?")) { 
+      const { error } = await supabaseClient.from('productos').delete().eq('id', id);
+      if(!error) fetchProducts();
+      else alert(error.message);
+    } 
+  }
 
 
-  // ==================== CARGA MASIVA DE ARRAYS (EXCEL/CSV) ====================
+  // ==================== CARGA MASIVA DE ARRAYS EN SUPABASE (EXCEL/CSV) ====================
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(evt) {
+    reader.onload = async function(evt) {
       const text = evt.target.result;
       const lines = text.split(/\r?\n/); 
       
+      let batchData = [];
+      
       for (let i = 0; i < lines.length; i++) {
-        // Si es la fila de encabezados (contiene palabras clave), la saltamos
         if (i === 0 && (lines[i].toLowerCase().includes('nombre') || lines[i].toLowerCase().includes('codigo') || lines[i].toLowerCase().includes('placa') || lines[i].toLowerCase().includes('ci'))) {
           continue;
         }
@@ -1151,52 +1297,69 @@
         
         const columns = lines[i].includes(';') ? lines[i].split(';') : lines[i].split(',');
         
-        // Enrutamiento inteligente de datos según la pestaña activa
         if (currentActiveTab === 'conductores') {
           const ci = columns[0]?.trim().toUpperCase();
           const nombre = columns[1]?.trim().toUpperCase();
-          if (ci && nombre && !globalDrivers.some(d => d.ci === ci)) {
-            globalDrivers.push({ ci, nombre });
-          }
+          if (ci && nombre) batchData.push({ ci, nombre });
         } 
         else if (currentActiveTab === 'placas') {
           const placa = columns[0]?.trim().toUpperCase();
-          if (placa && !globalPlates.some(p => p.placa === placa)) {
-            globalPlates.push({ placa });
-          }
+          if (placa) batchData.push({ placa });
         } 
         else if (currentActiveTab === 'clientes') {
           const code = columns[0]?.trim().toUpperCase();
           const name = columns[1]?.trim().toUpperCase();
           const transport = columns[2]?.trim().toUpperCase() || "PARTICULAR";
-          if (code && name && !globalClients.some(c => c.code === code)) {
-            globalClients.push({ code, name, transport });
-          }
+          if (code && name) batchData.push({ code, name, transport });
         } 
         else if (currentActiveTab === 'productos') {
           const code = columns[0]?.trim().toUpperCase();
           const name = columns[1]?.trim().toUpperCase();
-          if (code && name && !globalProducts.some(p => p.code === code)) {
-            globalProducts.push({ code, name });
-          }
+          if (code && name) batchData.push({ code, name });
         }
       }
       
-      // Forzar redibujado de la tabla activa
-      if (currentActiveTab === 'conductores') { currentDriverPage = 1; renderDrivers(); }
-      if (currentActiveTab === 'placas') { currentPlatePage = 1; renderPlates(); }
-      if (currentActiveTab === 'clientes') { currentClientPage = 1; renderClients(); }
-      if (currentActiveTab === 'productos') { currentProductPage = 1; renderProducts(); }
-      
-      alert("Carga masiva completada exitosamente en la sección actual.");
+      if(batchData.length > 0) {
+        updateSyncStatus("Subiendo carga masiva...");
+        const { error } = await supabaseClient.from(currentActiveTab).insert(batchData, { upsert: true });
+        
+        if(!error) {
+          alert(`Carga masiva de ${batchData.length} registros completada exitosamente.`);
+          if (currentActiveTab === 'conductores') { currentDriverPage = 1; fetchDrivers(); }
+          if (currentActiveTab === 'placas') { currentPlatePage = 1; fetchPlates(); }
+          if (currentActiveTab === 'clientes') { currentClientPage = 1; fetchClients(); }
+          if (currentActiveTab === 'productos') { currentProductPage = 1; fetchProducts(); }
+        } else {
+          alert("Error en carga masiva: " + error.message);
+          updateSyncStatus("Última sincronización: Error");
+        }
+      }
     };
     reader.readAsText(file);
     e.target.value = ''; 
   });
 
-  // Inicialización de la App
-  renderDrivers();
-  renderPlates();
+  // Inicialización de la App conectada
+  async function initApp() {
+    try {
+      // Verificación rápida de conexión base
+      const { data, error } = await supabaseClient.from('conductores').select('id').limit(1);
+      if(error) throw error;
+      
+      document.getElementById('supabase-db-badge').innerText = "CONECTADO";
+      document.getElementById('supabase-db-badge').style.backgroundColor = "rgba(16, 185, 129, 0.2)";
+      
+      // Cargar primera vista
+      fetchDrivers();
+    } catch(err) {
+      document.getElementById('supabase-db-badge').innerText = "ERROR BD";
+      document.getElementById('supabase-db-badge').style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+      document.getElementById('supabase-db-badge').style.color = "#ef4444";
+      updateSyncStatus("⚠️ No se pudo establecer conexión con Supabase.");
+    }
+  }
+
+  initApp();
 </script>
 </body>
 </html>
