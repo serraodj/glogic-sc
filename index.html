@@ -841,7 +841,10 @@
     if (element) element.classList.add('active');
     
     const mainHeaderTitle = document.getElementById('header-title');
-    if (element && mainHeaderTitle) mainHeaderTitle.innerText = element.innerText;
+    if (element && mainHeaderTitle) {
+      // Extrae únicamente el contenido de texto para omitir emojis sueltos si están dentro de etiquetas estructuradas
+      mainHeaderTitle.innerText = element.innerText;
+    }
   }
 
   // NAVEGACIÓN ENTRE SUB-PESTAÑAS INTERNAS DE LA DATA MAESTRA
@@ -906,7 +909,6 @@
       let query = supabaseClient.from('conductores').select('*', { count: 'exact' });
       
       if (driverSearchQuery) {
-        // CORREGIDO: Mapeado para utilizar las columnas de Supabase 'cedula' y 'name'
         query = query.or(`cedula.ilike.%${driverSearchQuery}%,name.ilike.%${driverSearchQuery}%`);
       }
       
@@ -1028,7 +1030,6 @@
     tbody.innerHTML = "";
     globalDrivers.forEach((d) => {
       const row = document.createElement('tr');
-      // CORREGIDO: Extrae d.cedula y d.name de la BD
       row.innerHTML = `
         <td class="font-mono-emerald">${d.cedula || ''}</td>
         <td style="color:#f8fafc; font-weight:500;">${d.name || ''}</td>
@@ -1115,11 +1116,9 @@
 
     try {
       if(id === "") { // Crear
-        // CORREGIDO: Inserta mapeando los campos a las columnas reales de Supabase
         const { error } = await supabaseClient.from('conductores').insert([{ cedula: ci, name: nombre }]);
         if (error) throw error;
       } else { // Editar
-        // CORREGIDO: Actualiza mapeando los campos a las columnas reales de Supabase
         const { error } = await supabaseClient.from('conductores').update({ cedula: ci, name: nombre }).eq('id', id);
         if (error) throw error;
         document.getElementById('editDriverId').value = "";
@@ -1133,7 +1132,6 @@
   async function editDriver(id) {
     const d = globalDrivers.find(item => item.id == id);
     if(!d) return;
-    // CORREGIDO: Extrae los valores de d.cedula y d.name respectivamente
     document.getElementById('inputCI').value = d.cedula;
     document.getElementById('inputNombre').value = d.name;
     document.getElementById('editDriverId').value = d.id;
@@ -1280,7 +1278,7 @@
   }
 
 
-  // ==================== CARGA MASIVA DE ARRAYS EN SUPABASE (EXCEL/CSV) ====================
+  // ==================== CARGA MASIVA EN SUPABASE (EXCEL/CSV - CORREGIDO PARA V2) ====================
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1303,7 +1301,6 @@
         if (currentActiveTab === 'conductores') {
           const ci = columns[0]?.trim().toUpperCase();
           const nombre = columns[1]?.trim().toUpperCase();
-          // CORREGIDO: Mapea la carga masiva en el formato correcto para Supabase ({ cedula, name })
           if (ci && nombre) batchData.push({ cedula: ci, name: nombre });
         } 
         else if (currentActiveTab === 'placas') {
@@ -1325,7 +1322,9 @@
       
       if(batchData.length > 0) {
         updateSyncStatus("Subiendo carga masiva...");
-        const { error } = await supabaseClient.from(currentActiveTab).insert(batchData, { upsert: true });
+        
+        // CORRECCIÓN CLAVE: En Supabase v2 se usa directamente .upsert(data) en lugar de pasar la opción dentro de .insert()
+        const { error } = await supabaseClient.from(currentActiveTab).upsert(batchData);
         
         if(!error) {
           alert(`Carga masiva de ${batchData.length} registros completada exitosamente.`);
