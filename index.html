@@ -802,10 +802,8 @@
 <script>
   // ==================== CONFIGURACIÓN DE SUPABASE ====================
   const SUPABASE_URL = "https://yzkqfrhfnpvpcuobpdrc.supabase.co"; 
-  // ¡REEMPLAZA ESTE TEXTO CON TU VERDADERA CLAVE LARGA QUE EMPIEZA POR eyJ...!
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6a3FmcmhmbnB2cGN1b2JwZHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDU5MDgsImV4cCI6MjA5OTE4MTkwOH0.tF39trLAbqN_NhGp4njUtA8YRIg03bmcjAxcW0-QrKwT2t6wiaww__Z4aYmCY"; 
 
-  // Inicializar correctamente usando las variables de arriba
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // VARIABLES DE CONTROL DE VISTA ACTIVA INTERNA
@@ -908,11 +906,12 @@
       let query = supabaseClient.from('conductores').select('*', { count: 'exact' });
       
       if (driverSearchQuery) {
-        query = query.or(`ci.ilike.%${driverSearchQuery}%,nombre.ilike.%${driverSearchQuery}%`);
+        // CORREGIDO: Mapeado para utilizar las columnas de Supabase 'cedula' y 'name'
+        query = query.or(`cedula.ilike.%${driverSearchQuery}%,name.ilike.%${driverSearchQuery}%`);
       }
       
       const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
-      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('nombre', { ascending: true });
+      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
 
       if (error) throw error;
 
@@ -1029,9 +1028,10 @@
     tbody.innerHTML = "";
     globalDrivers.forEach((d) => {
       const row = document.createElement('tr');
+      // CORREGIDO: Extrae d.cedula y d.name de la BD
       row.innerHTML = `
-        <td class="font-mono-emerald">${d.ci}</td>
-        <td style="color:#f8fafc; font-weight:500;">${d.nombre}</td>
+        <td class="font-mono-emerald">${d.cedula || ''}</td>
+        <td style="color:#f8fafc; font-weight:500;">${d.name || ''}</td>
         <td>
           <button class="action-btn" onclick="editDriver('${d.id}')">✏️</button>
           <button class="action-btn" onclick="deleteDriver('${d.id}')">🗑️</button>
@@ -1104,7 +1104,7 @@
   document.getElementById('clientSearch').addEventListener('input', e => { clientSearchQuery = e.target.value.toUpperCase().trim(); currentClientPage = 1; fetchClients(); });
   document.getElementById('productSearch').addEventListener('input', e => { productSearchQuery = e.target.value.toUpperCase().trim(); currentProductPage = 1; fetchProducts(); });
 
-  // ==================== OPERACIONES CRUD (PERSISTENCIA COMPLETA) ====================
+  // ==================== OPERACIONES CRUD ====================
   
   // CONDUCTORES
   document.getElementById('driverForm').addEventListener('submit', async function(e) {
@@ -1115,10 +1115,12 @@
 
     try {
       if(id === "") { // Crear
-        const { error } = await supabaseClient.from('conductores').insert([{ ci, nombre }]);
+        // CORREGIDO: Inserta mapeando los campos a las columnas reales de Supabase
+        const { error } = await supabaseClient.from('conductores').insert([{ cedula: ci, name: nombre }]);
         if (error) throw error;
       } else { // Editar
-        const { error } = await supabaseClient.from('conductores').update({ ci, nombre }).eq('id', id);
+        // CORREGIDO: Actualiza mapeando los campos a las columnas reales de Supabase
+        const { error } = await supabaseClient.from('conductores').update({ cedula: ci, name: nombre }).eq('id', id);
         if (error) throw error;
         document.getElementById('editDriverId').value = "";
         document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
@@ -1131,8 +1133,9 @@
   async function editDriver(id) {
     const d = globalDrivers.find(item => item.id == id);
     if(!d) return;
-    document.getElementById('inputCI').value = d.ci;
-    document.getElementById('inputNombre').value = d.nombre;
+    // CORREGIDO: Extrae los valores de d.cedula y d.name respectivamente
+    document.getElementById('inputCI').value = d.cedula;
+    document.getElementById('inputNombre').value = d.name;
     document.getElementById('editDriverId').value = d.id;
     document.getElementById('driverFormTitle').innerHTML = `📝 Modificar Conductor`;
     document.getElementById('driverSubmitBtn').innerText = "Actualizar Datos";
@@ -1300,7 +1303,8 @@
         if (currentActiveTab === 'conductores') {
           const ci = columns[0]?.trim().toUpperCase();
           const nombre = columns[1]?.trim().toUpperCase();
-          if (ci && nombre) batchData.push({ ci, nombre });
+          // CORREGIDO: Mapea la carga masiva en el formato correcto para Supabase ({ cedula, name })
+          if (ci && nombre) batchData.push({ cedula: ci, name: nombre });
         } 
         else if (currentActiveTab === 'placas') {
           const placa = columns[0]?.trim().toUpperCase();
@@ -1342,14 +1346,12 @@
   // Inicialización de la App conectada
   async function initApp() {
     try {
-      // Verificación rápida de conexión base
       const { data, error } = await supabaseClient.from('conductores').select('id').limit(1);
       if(error) throw error;
       
       document.getElementById('supabase-db-badge').innerText = "CONECTADO";
       document.getElementById('supabase-db-badge').style.backgroundColor = "rgba(16, 185, 129, 0.2)";
       
-      // Cargar primera vista
       fetchDrivers();
     } catch(err) {
       document.getElementById('supabase-db-badge').innerText = "ERROR BD";
