@@ -1,4 +1,4 @@
-}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -96,6 +96,7 @@
     .title-log { color: #60a5fa; }
     .title-load { color: #f59e0b; }
     .title-inv { color: #c084fc; }
+    .title-db { color: #ec4899; } /* Color rosa para la base de datos */
 
     /* ESTATUS MOTOR BD */
     .status-box {
@@ -109,7 +110,8 @@
       font-size: 0.75rem;
       color: #34d399;
       font-weight: 600;
-      margin-bottom: 1rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
     }
     .status-badge {
       background-color: rgba(16, 185, 129, 0.2);
@@ -369,14 +371,6 @@
       
       <nav>
         <div class="nav-group">
-          <p class="nav-title" style="color:#64748b;">Modo Visualización</p>
-          <div class="status-box">
-            <span>⚙️ MOTOR DE DATOS (BD)</span>
-            <span class="status-badge">ACTIVO</span>
-          </div>
-        </div>
-
-        <div class="nav-group">
           <p class="nav-title title-ops">1. Operaciones</p>
           <button class="nav-item" onclick="switchView('pedidos', this)">
             <span class="nav-item-inner"><span>📦</span> Base de Datos de Pedidos</span>
@@ -413,15 +407,26 @@
         </div>
 
         <div class="nav-group">
-          <p class="nav-title title-inv">4. Inventarios / BD</p>
-          <button class="nav-item active" onclick="switchView('data-maestra', this)">
-            <span class="nav-item-inner"><span>⚙️</span> Conductores y Placas [BD]</span>
-          </button>
+          <p class="nav-title title-inv">4. Inventarios</p>
           <button class="nav-item" onclick="switchView('inventario-granel', this)">
             <span class="nav-item-inner"><span>🛢️</span> Inventario Granel (TN)</span>
           </button>
           <button class="nav-item" onclick="switchView('inventario-sacos', this)">
             <span class="nav-item-inner"><span>📦</span> Inventario Sacos</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <p class="nav-title title-db">5. Motores y Respaldos (BD)</p>
+          <div class="status-box">
+            <span>⚙️ MOTOR DE DATOS (BD)</span>
+            <span class="status-badge">ACTIVO</span>
+          </div>
+          <button class="nav-item active" onclick="switchView('data-maestra', this)">
+            <span class="nav-item-inner"><span>⚙️</span> Conductores y Placas [BD]</span>
+          </button>
+          <button class="nav-item" onclick="switchView('motor-bd', this)">
+            <span class="nav-item-inner"><span>🖥️</span> Estado de Servidores BD</span>
           </button>
         </div>
       </nav>
@@ -497,6 +502,17 @@
               </table>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN NUEVA: MOTOR BD -->
+      <section id="view-motor-bd" class="view-section">
+        <div class="generic-view-header">
+          <h2>🖥️ Estado de Servidores BD</h2>
+          <p>Métricas del motor de almacenamiento, conexiones entrantes y respaldos.</p>
+        </div>
+        <div class="placeholder-card">
+          Módulo del Sistema — Estado de las consultas e indexación automática de la base maestra.
         </div>
       </section>
 
