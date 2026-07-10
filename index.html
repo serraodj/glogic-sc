@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>LOGIC SC - Gestión Agroindustrial</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* RESET GENERAL Y VARIABLES DE COLOR */
     * {
@@ -98,21 +97,21 @@
     /* ESTATUS MOTOR BD */
     .status-box {
       padding: 0.375rem 0.75rem;
-      background-color: rgba(6, 78, 59, 0.4);
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      background-color: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(100, 116, 139, 0.5);
       border-radius: 0.5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-size: 0.75rem;
-      color: #34d399;
+      color: #94a3b8;
       font-weight: 600;
       margin-top: 0.5rem;
       margin-bottom: 0.5rem;
     }
     .status-badge {
-      background-color: rgba(16, 185, 129, 0.2);
-      color: #6ee7b7;
+      background-color: rgba(100, 116, 139, 0.2);
+      color: #cbd5e1;
       padding: 2px 4px;
       border-radius: 0.25rem;
       font-size: 9px;
@@ -521,7 +520,7 @@
           <p class="nav-title title-db">5. Motores y Respaldos (BD)</p>
           <div class="status-box">
             <span>⚙️ MOTOR DE DATOS (BD)</span>
-            <span class="status-badge" id="supabase-db-badge">CONECTANDO</span>
+            <span class="status-badge" id="supabase-db-badge">MODO LOCAL</span>
           </div>
           <button class="nav-item active" onclick="switchView('data-maestra', this)">
             <span class="nav-item-inner"><span>⚙️</span> Motores de Base Maestra</span>
@@ -538,7 +537,7 @@
   <main class="main-content">
     <header class="main-header">
       <div class="header-title" id="header-title">⚙️ Motores de Base Maestra</div>
-      <div class="header-sync" id="header-sync-state">Última sincronización: Cargando...</div>
+      <div class="header-sync" id="header-sync-state">Almacenamiento Local Activo</div>
     </header>
 
     <div class="view-wrapper">
@@ -555,7 +554,7 @@
         <div class="panel-card" style="border-color: #0369a1; margin-bottom: 1.5rem; padding: 1rem; flex-direction: row; justify-content: space-between; align-items: center; width: 100%;">
           <div>
             <h2 class="card-title" style="color:#38bdf8; font-size: 0.95rem; margin-bottom: 2px;">📂 Carga Masiva Inteligente (CSV / Excel)</h2>
-            <p class="card-subtitle" style="margin-bottom: 0;" id="csvHelperText">Sube un archivo compatible con la pestaña de Conductores.</p>
+            <p class="card-subtitle" style="margin-bottom: 0;" id="csvHelperText">Sube un archivo compatible con la pestaña de Conductores (Columnas: CI, Nombre).</p>
           </div>
           <div>
             <label for="csvFileInput" style="display: inline-block; background-color: #1e293b; border: 1px solid #334155; color: #38bdf8; font-weight: 700; font-size: 0.813rem; padding: 0.5rem 1rem; border-radius: 0.5rem; text-align: center; cursor: pointer;">
@@ -753,7 +752,7 @@
       <!-- DEMÁS SECCIONES (SKELETONS) -->
       <section id="view-motor-bd" class="view-section">
         <div class="generic-view-header"><h2>🖥️ Estado de Servidores BD</h2><p>Métricas del motor de almacenamiento.</p></div>
-        <div class="placeholder-card">Módulo del Sistema — Estado de las consultas de la base maestra.</div>
+        <div class="placeholder-card">Módulo del Sistema — Entorno ejecutándose localmente en almacenamiento del navegador.</div>
       </section>
       <section id="view-pedidos" class="view-section">
         <div class="generic-view-header"><h2>📦 Base de Datos de Pedidos</h2><p>Historial general y tracking de órdenes agroindustriales.</p></div>
@@ -800,20 +799,14 @@
 </div>
 
 <script>
-  // ==================== CONFIGURACIÓN DE SUPABASE ====================
-  const SUPABASE_URL = "https://yzkqfrhfnpvpcuobpdrc.supabase.co"; 
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6a3FmcmhmbnB2cGN1b2JwZHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDU5MDgsImV4cCI6MjA5OTE4MTkwOH0.tF39trLAbqN_NhGp4njUtA8YRIg03bmcjAxcW0-QrKwT2t6wiaww__Z4aYmCY"; 
-
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   // VARIABLES DE CONTROL DE VISTA ACTIVA INTERNA
   let currentActiveTab = "conductores";
 
-  // ARRAYS AUXILIARES PARA RENDERIZADO ACTUAL (PROVENIENTES DE BD)
-  let globalDrivers = [];
-  let globalPlates = [];
-  let globalClients = [];
-  let globalProducts = [];
+  // ARRAYS AUXILIARES EN MEMORIA LOCAL (LocalStorage)
+  let globalDrivers = JSON.parse(localStorage.getItem('lg_conductores')) || [];
+  let globalPlates = JSON.parse(localStorage.getItem('lg_placas')) || [];
+  let globalClients = JSON.parse(localStorage.getItem('lg_clientes')) || [];
+  let globalProducts = JSON.parse(localStorage.getItem('lg_productos')) || [];
 
   // CONFIGURACIÓN DE PAGINACIÓN (50 REGISTROS POR PÁGINA)
   const ITEMS_PER_PAGE = 50;
@@ -827,6 +820,16 @@
   let plateSearchQuery = "";
   let clientSearchQuery = "";
   let productSearchQuery = "";
+
+  // Guardado centralizado local
+  function saveToLocalStorage(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  // Generador de IDs únicos temporales para el CRUD local
+  function generateId() {
+    return '_' + Math.random().toString(36).substr(2, 9);
+  }
 
   // CONTROL DE NAVEGACIÓN PRINCIPAL (SIDEBAR)
   function switchView(viewId, element) {
@@ -842,7 +845,6 @@
     
     const mainHeaderTitle = document.getElementById('header-title');
     if (element && mainHeaderTitle) {
-      // Extrae únicamente el contenido de texto para omitir emojis sueltos si están dentro de etiquetas estructuradas
       mainHeaderTitle.innerText = element.innerText;
     }
   }
@@ -901,134 +903,131 @@
     document.getElementById('header-sync-state').innerText = msg;
   }
 
-  // ==================== CONSULTAS READ DE SUPABASE (FETCH) ====================
+  // ==================== OPERACIONES LOCALES (REPLICA DE FETCH) ====================
   
-  async function fetchDrivers() {
-    updateSyncStatus("Sincronizando Conductores...");
-    try {
-      let query = supabaseClient.from('conductores').select('*', { count: 'exact' });
-      
-      if (driverSearchQuery) {
-        query = query.or(`cedula.ilike.%${driverSearchQuery}%,name.ilike.%${driverSearchQuery}%`);
-      }
-      
-      const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
-      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
-
-      if (error) throw error;
-
-      globalDrivers = data || [];
-      document.getElementById('driverCount').innerText = `${count || 0} Activos`;
-      
-      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
-      document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
-      document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
-      document.getElementById('driverNextBtn').disabled = (currentDriverPage >= totalPages);
-
-      renderDriversTable();
-      updateSyncStatus("Última sincronización: En tiempo real");
-    } catch (err) {
-      console.error(err);
-      updateSyncStatus("⚠️ Error de sincronización");
+  function fetchDrivers() {
+    updateSyncStatus("Filtrando Conductores Localmente...");
+    
+    let filtered = globalDrivers;
+    if (driverSearchQuery) {
+      filtered = globalDrivers.filter(d => 
+        (d.cedula && d.cedula.toUpperCase().includes(driverSearchQuery)) || 
+        (d.name && d.name.toUpperCase().includes(driverSearchQuery))
+      );
     }
+    
+    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    
+    const count = filtered.length;
+    document.getElementById('driverCount').innerText = `${count} Activos`;
+    
+    const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
+    if (currentDriverPage > totalPages) currentDriverPage = totalPages;
+    
+    document.getElementById('driverPageInfo').innerText = `Pág. ${currentDriverPage} de ${totalPages}`;
+    document.getElementById('driverPrevBtn').disabled = (currentDriverPage === 1);
+    document.getElementById('driverNextBtn').disabled = (currentDriverPage >= totalPages);
+
+    const start = (currentDriverPage - 1) * ITEMS_PER_PAGE;
+    const pageData = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+    renderDriversTable(pageData);
+    updateSyncStatus("Motor Local: Datos listos");
   }
 
-  async function fetchPlates() {
-    updateSyncStatus("Sincronizando Placas...");
-    try {
-      let query = supabaseClient.from('placas').select('*', { count: 'exact' });
-      
-      if (plateSearchQuery) {
-        query = query.ilike('placa', `%${plateSearchQuery}%`);
-      }
-      
-      const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
-      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('placa', { ascending: true });
-
-      if (error) throw error;
-
-      globalPlates = data || [];
-      document.getElementById('plateCount').innerText = `${count || 0} Libres`;
-      
-      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
-      document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
-      document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
-      document.getElementById('plateNextBtn').disabled = (currentPlatePage >= totalPages);
-
-      renderPlatesTable();
-      updateSyncStatus("Última sincronización: En tiempo real");
-    } catch (err) {
-      console.error(err);
-      updateSyncStatus("⚠️ Error de sincronización");
+  function fetchPlates() {
+    updateSyncStatus("Filtrando Placas Localmente...");
+    
+    let filtered = globalPlates;
+    if (plateSearchQuery) {
+      filtered = globalPlates.filter(p => p.placa && p.placa.toUpperCase().includes(plateSearchQuery));
     }
+    
+    filtered.sort((a, b) => (a.placa || "").localeCompare(b.placa || ""));
+    
+    const count = filtered.length;
+    document.getElementById('plateCount').innerText = `${count} Libres`;
+    
+    const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
+    if (currentPlatePage > totalPages) currentPlatePage = totalPages;
+    
+    document.getElementById('platePageInfo').innerText = `Pág. ${currentPlatePage} de ${totalPages}`;
+    document.getElementById('platePrevBtn').disabled = (currentPlatePage === 1);
+    document.getElementById('plateNextBtn').disabled = (currentPlatePage >= totalPages);
+
+    const start = (currentPlatePage - 1) * ITEMS_PER_PAGE;
+    const pageData = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+    renderPlatesTable(pageData);
+    updateSyncStatus("Motor Local: Datos listos");
   }
 
-  async function fetchClients() {
-    updateSyncStatus("Sincronizando Clientes...");
-    try {
-      let query = supabaseClient.from('clientes').select('*', { count: 'exact' });
-      
-      if (clientSearchQuery) {
-        query = query.or(`code.ilike.%${clientSearchQuery}%,name.ilike.%${clientSearchQuery}%`);
-      }
-      
-      const start = (currentClientPage - 1) * ITEMS_PER_PAGE;
-      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
-
-      if (error) throw error;
-
-      globalClients = data || [];
-      document.getElementById('clientCount').innerText = `${count || 0} Registrados`;
-      
-      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
-      document.getElementById('clientPageInfo').innerText = `Pág. ${currentClientPage} de ${totalPages}`;
-      document.getElementById('clientPrevBtn').disabled = (currentClientPage === 1);
-      document.getElementById('clientNextBtn').disabled = (currentClientPage >= totalPages);
-
-      renderClientsTable();
-      updateSyncStatus("Última sincronización: En tiempo real");
-    } catch (err) {
-      console.error(err);
-      updateSyncStatus("⚠️ Error de sincronización");
+  function fetchClients() {
+    updateSyncStatus("Filtrando Clientes Localmente...");
+    
+    let filtered = globalClients;
+    if (clientSearchQuery) {
+      filtered = globalClients.filter(c => 
+        (c.code && c.code.toUpperCase().includes(clientSearchQuery)) || 
+        (c.name && c.name.toUpperCase().includes(clientSearchQuery))
+      );
     }
+    
+    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    
+    const count = filtered.length;
+    document.getElementById('clientCount').innerText = `${count} Registrados`;
+    
+    const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
+    if (currentClientPage > totalPages) currentClientPage = totalPages;
+    
+    document.getElementById('clientPageInfo').innerText = `Pág. ${currentClientPage} de ${totalPages}`;
+    document.getElementById('clientPrevBtn').disabled = (currentClientPage === 1);
+    document.getElementById('clientNextBtn').disabled = (currentClientPage >= totalPages);
+
+    const start = (currentClientPage - 1) * ITEMS_PER_PAGE;
+    const pageData = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+    renderClientsTable(pageData);
+    updateSyncStatus("Motor Local: Datos listos");
   }
 
-  async function fetchProducts() {
-    updateSyncStatus("Sincronizando Catálogo...");
-    try {
-      let query = supabaseClient.from('productos').select('*', { count: 'exact' });
-      
-      if (productSearchQuery) {
-        query = query.or(`code.ilike.%${productSearchQuery}%,name.ilike.%${productSearchQuery}%`);
-      }
-      
-      const start = (currentProductPage - 1) * ITEMS_PER_PAGE;
-      const { data, error, count } = await query.range(start, start + ITEMS_PER_PAGE - 1).order('name', { ascending: true });
-
-      if (error) throw error;
-
-      globalProducts = data || [];
-      document.getElementById('productCount').innerText = `${count || 0} Rubros`;
-      
-      const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE) || 1;
-      document.getElementById('productPageInfo').innerText = `Pág. ${currentProductPage} de ${totalPages}`;
-      document.getElementById('productPrevBtn').disabled = (currentProductPage === 1);
-      document.getElementById('productNextBtn').disabled = (currentProductPage >= totalPages);
-
-      renderProductsTable();
-      updateSyncStatus("Última sincronización: En tiempo real");
-    } catch (err) {
-      console.error(err);
-      updateSyncStatus("⚠️ Error de sincronización");
+  function fetchProducts() {
+    updateSyncStatus("Filtrando Catálogo Localmente...");
+    
+    let filtered = globalProducts;
+    if (productSearchQuery) {
+      filtered = globalProducts.filter(p => 
+        (p.code && p.code.toUpperCase().includes(productSearchQuery)) || 
+        (p.name && p.name.toUpperCase().includes(productSearchQuery))
+      );
     }
+    
+    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    
+    const count = filtered.length;
+    document.getElementById('productCount').innerText = `${count} Rubros`;
+    
+    const totalPages = Math.ceil(count / ITEMS_PER_PAGE) || 1;
+    if (currentProductPage > totalPages) currentProductPage = totalPages;
+    
+    document.getElementById('productPageInfo').innerText = `Pág. ${currentProductPage} de ${totalPages}`;
+    document.getElementById('productPrevBtn').disabled = (currentProductPage === 1);
+    document.getElementById('productNextBtn').disabled = (currentProductPage >= totalPages);
+
+    const start = (currentProductPage - 1) * ITEMS_PER_PAGE;
+    const pageData = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+    renderProductsTable(pageData);
+    updateSyncStatus("Motor Local: Datos listos");
   }
 
   // ==================== RENDERS DE TABLAS DOM ====================
-  function renderDriversTable() {
+  function renderDriversTable(data) {
     const tbody = document.getElementById('driverTableBody');
     if (!tbody) return;
     tbody.innerHTML = "";
-    globalDrivers.forEach((d) => {
+    data.forEach((d) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-emerald">${d.cedula || ''}</td>
@@ -1041,11 +1040,11 @@
     });
   }
 
-  function renderPlatesTable() {
+  function renderPlatesTable(data) {
     const tbody = document.getElementById('plateTableBody');
     if (!tbody) return;
     tbody.innerHTML = "";
-    globalPlates.forEach((p) => {
+    data.forEach((p) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><span class="badge-plate">${p.placa}</span></td>
@@ -1058,11 +1057,11 @@
     });
   }
 
-  function renderClientsTable() {
+  function renderClientsTable(data) {
     const tbody = document.getElementById('clientTableBody');
     if (!tbody) return;
     tbody.innerHTML = "";
-    globalClients.forEach((c) => {
+    data.forEach((c) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-purple">${c.code}</td>
@@ -1076,11 +1075,11 @@
     });
   }
 
-  function renderProductsTable() {
+  function renderProductsTable(data) {
     const tbody = document.getElementById('productTableBody');
     if (!tbody) return;
     tbody.innerHTML = "";
-    globalProducts.forEach((p) => {
+    data.forEach((p) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="font-mono-cyan">${p.code}</td>
@@ -1105,31 +1104,39 @@
   document.getElementById('clientSearch').addEventListener('input', e => { clientSearchQuery = e.target.value.toUpperCase().trim(); currentClientPage = 1; fetchClients(); });
   document.getElementById('productSearch').addEventListener('input', e => { productSearchQuery = e.target.value.toUpperCase().trim(); currentProductPage = 1; fetchProducts(); });
 
-  // ==================== OPERACIONES CRUD ====================
+  // ==================== OPERACIONES CRUD LOCALES ====================
   
   // CONDUCTORES
-  document.getElementById('driverForm').addEventListener('submit', async function(e) {
+  document.getElementById('driverForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const ci = document.getElementById('inputCI').value.toUpperCase().trim();
     const nombre = document.getElementById('inputNombre').value.toUpperCase().trim();
     const id = document.getElementById('editDriverId').value;
 
-    try {
-      if(id === "") { // Crear
-        const { error } = await supabaseClient.from('conductores').insert([{ cedula: ci, name: nombre }]);
-        if (error) throw error;
-      } else { // Editar
-        const { error } = await supabaseClient.from('conductores').update({ cedula: ci, name: nombre }).eq('id', id);
-        if (error) throw error;
-        document.getElementById('editDriverId').value = "";
-        document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
-        document.getElementById('driverSubmitBtn').innerText = "Guardar Conductor";
+    if(id === "") { // Crear u Upsert por cédula existente
+      const index = globalDrivers.findIndex(item => item.cedula === ci);
+      if(index >= 0) {
+        globalDrivers[index].name = nombre;
+      } else {
+        globalDrivers.push({ id: generateId(), cedula: ci, name: nombre });
       }
-      this.reset(); fetchDrivers();
-    } catch(err) { alert("Error al guardar: " + err.message); }
+    } else { // Editar explícito por ID
+      const index = globalDrivers.findIndex(item => item.id === id);
+      if(index >= 0) {
+        globalDrivers[index].cedula = ci;
+        globalDrivers[index].name = nombre;
+      }
+      document.getElementById('editDriverId').value = "";
+      document.getElementById('driverFormTitle').innerHTML = `<span style="color:#10b981;">✚</span> Registrar Conductor`;
+      document.getElementById('driverSubmitBtn').innerText = "Guardar Conductor";
+    }
+    
+    saveToLocalStorage('lg_conductores', globalDrivers);
+    this.reset(); 
+    fetchDrivers();
   });
 
-  async function editDriver(id) {
+  function editDriver(id) {
     const d = globalDrivers.find(item => item.id == id);
     if(!d) return;
     document.getElementById('inputCI').value = d.cedula;
@@ -1139,33 +1146,36 @@
     document.getElementById('driverSubmitBtn').innerText = "Actualizar Datos";
   }
 
-  async function deleteDriver(id) { 
-    if(confirm("¿Eliminar conductor de la base de datos?")) { 
-      const { error } = await supabaseClient.from('conductores').delete().eq('id', id);
-      if(!error) fetchDrivers(); 
-      else alert(error.message);
+  function deleteDriver(id) { 
+    if(confirm("¿Eliminar conductor de la base de datos local?")) { 
+      globalDrivers = globalDrivers.filter(item => item.id !== id);
+      saveToLocalStorage('lg_conductores', globalDrivers);
+      fetchDrivers(); 
     } 
   }
 
   // PLACAS
-  document.getElementById('plateForm').addEventListener('submit', async function(e) {
+  document.getElementById('plateForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const placa = document.getElementById('inputPlacaOnly').value.toUpperCase().trim();
     const id = document.getElementById('editPlateId').value;
 
-    try {
-      if(id === "") {
-        const { error } = await supabaseClient.from('placas').insert([{ placa }]);
-        if (error) throw error;
-      } else {
-        const { error } = await supabaseClient.from('placas').update({ placa }).eq('id', id);
-        if (error) throw error;
-        document.getElementById('editPlateId').value = "";
-        document.getElementById('plateFormTitle').innerHTML = `<span style="color:#f59e0b;">✚</span> Registrar Placa`;
-        document.getElementById('plateSubmitBtn').innerText = "Guardar Placa";
+    if(id === "") {
+      const index = globalPlates.findIndex(item => item.placa === placa);
+      if(index === -1) {
+        globalPlates.push({ id: generateId(), placa });
       }
-      this.reset(); fetchPlates();
-    } catch(err) { alert("Error al guardar la placa: " + err.message); }
+    } else {
+      const index = globalPlates.findIndex(item => item.id === id);
+      if(index >= 0) globalPlates[index].placa = placa;
+      document.getElementById('editPlateId').value = "";
+      document.getElementById('plateFormTitle').innerHTML = `<span style="color:#f59e0b;">✚</span> Registrar Placa`;
+      document.getElementById('plateSubmitBtn').innerText = "Guardar Placa";
+    }
+    
+    saveToLocalStorage('lg_placas', globalPlates);
+    this.reset(); 
+    fetchPlates();
   });
 
   function editPlate(id) {
@@ -1177,16 +1187,16 @@
     document.getElementById('plateSubmitBtn').innerText = "Actualizar Placa";
   }
 
-  async function deletePlate(id) { 
-    if(confirm("¿Eliminar placa del servidor?")) { 
-      const { error } = await supabaseClient.from('placas').delete().eq('id', id);
-      if(!error) fetchPlates();
-      else alert(error.message);
+  function deletePlate(id) { 
+    if(confirm("¿Eliminar placa del almacén local?")) { 
+      globalPlates = globalPlates.filter(item => item.id !== id);
+      saveToLocalStorage('lg_placas', globalPlates);
+      fetchPlates();
     } 
   }
 
   // CLIENTES
-  document.getElementById('clientForm').addEventListener('submit', async function(e) {
+  document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const code = document.getElementById('inputClientCode').value.toUpperCase().trim();
     const name = document.getElementById('inputClientName').value.toUpperCase().trim();
@@ -1194,19 +1204,30 @@
     let transport = selectValue === 'MANUAL' ? document.getElementById('inputManualTransport').value.toUpperCase().trim() : selectValue;
     const id = document.getElementById('editClientId').value;
 
-    try {
-      if(id === "") {
-        const { error } = await supabaseClient.from('clientes').insert([{ code, name, transport }]);
-        if (error) throw error;
+    if(id === "") {
+      const index = globalClients.findIndex(item => item.code === code);
+      if(index >= 0) {
+        globalClients[index].name = name;
+        globalClients[index].transport = transport;
       } else {
-        const { error } = await supabaseClient.from('clientes').update({ code, name, transport }).eq('id', id);
-        if (error) throw error;
-        document.getElementById('editClientId').value = "";
-        document.getElementById('clientFormTitle').innerHTML = `<span style="color:#c084fc;">✚</span> Registrar Cliente`;
-        document.getElementById('clientSubmitBtn').innerText = "Guardar Cliente";
+        globalClients.push({ id: generateId(), code, name, transport });
       }
-      this.reset(); toggleManualTransport('PARTICULAR'); fetchClients();
-    } catch(err) { alert("Error: " + err.message); }
+    } else {
+      const index = globalClients.findIndex(item => item.id === id);
+      if(index >= 0) {
+        globalClients[index].code = code;
+        globalClients[index].name = name;
+        globalClients[index].transport = transport;
+      }
+      document.getElementById('editClientId').value = "";
+      document.getElementById('clientFormTitle').innerHTML = `<span style="color:#c084fc;">✚</span> Registrar Cliente`;
+      document.getElementById('clientSubmitBtn').innerText = "Guardar Cliente";
+    }
+    
+    saveToLocalStorage('lg_clientes', globalClients);
+    this.reset(); 
+    toggleManualTransport('PARTICULAR'); 
+    fetchClients();
   });
 
   function editClient(id) {
@@ -1229,34 +1250,42 @@
     }
   }
 
-  async function deleteClient(id) { 
+  function deleteClient(id) { 
     if(confirm("¿Eliminar Cliente?")) { 
-      const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
-      if(!error) fetchClients();
-      else alert(error.message);
+      globalClients = globalClients.filter(item => item.id !== id);
+      saveToLocalStorage('lg_clientes', globalClients);
+      fetchClients();
     } 
   }
 
   // PRODUCTOS
-  document.getElementById('productForm').addEventListener('submit', async function(e) {
+  document.getElementById('productForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const code = document.getElementById('inputProductCode').value.toUpperCase().trim();
     const name = document.getElementById('inputProductName').value.toUpperCase().trim();
     const id = document.getElementById('editProductId').value;
 
-    try {
-      if(id === "") {
-        const { error } = await supabaseClient.from('productos').insert([{ code, name }]);
-        if (error) throw error;
+    if(id === "") {
+      const index = globalProducts.findIndex(item => item.code === code);
+      if(index >= 0) {
+        globalProducts[index].name = name;
       } else {
-        const { error } = await supabaseClient.from('productos').update({ code, name }).eq('id', id);
-        if (error) throw error;
-        document.getElementById('editProductId').value = "";
-        document.getElementById('productFormTitle').innerHTML = `<span style="color:#06b6d4;">✚</span> Registrar Producto`;
-        document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
+        globalProducts.push({ id: generateId(), code, name });
       }
-      this.reset(); fetchProducts();
-    } catch(err) { alert("Error: " + err.message); }
+    } else {
+      const index = globalProducts.findIndex(item => item.id === id);
+      if(index >= 0) {
+        globalProducts[index].code = code;
+        globalProducts[index].name = name;
+      }
+      document.getElementById('editProductId').value = "";
+      document.getElementById('productFormTitle').innerHTML = `<span style="color:#06b6d4;">✚</span> Registrar Producto`;
+      document.getElementById('productSubmitBtn').innerText = "Guardar Producto";
+    }
+    
+    saveToLocalStorage('lg_productos', globalProducts);
+    this.reset(); 
+    fetchProducts();
   });
 
   function editProduct(id) {
@@ -1269,30 +1298,28 @@
     document.getElementById('productSubmitBtn').innerText = "Actualizar Producto";
   }
 
-  async function deleteProduct(id) { 
-    if(confirm("¿Eliminar Producto del catálogo?")) { 
-      const { error } = await supabaseClient.from('productos').delete().eq('id', id);
-      if(!error) fetchProducts();
-      else alert(error.message);
+  function deleteProduct(id) { 
+    if(confirm("¿Eliminar Producto del catálogo local?")) { 
+      globalProducts = globalProducts.filter(item => item.id !== id);
+      saveToLocalStorage('lg_productos', globalProducts);
+      fetchProducts();
     } 
   }
 
-
-  // ==================== CARGA MASIVA EN SUPABASE (EXCEL/CSV - CORREGIDO PARA V2) ====================
+  // ==================== CARGA MASIVA LOCAL REPLICANDO COMPORTAMIENTO UPSERT ====================
   document.getElementById('csvFileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async function(evt) {
+    reader.onload = function(evt) {
       const text = evt.target.result;
       const lines = text.split(/\r?\n/); 
-      
-      let batchData = [];
+      let countAdded = 0;
       
       for (let i = 0; i < lines.length; i++) {
         if (i === 0 && (lines[i].toLowerCase().includes('nombre') || lines[i].toLowerCase().includes('codigo') || lines[i].toLowerCase().includes('placa') || lines[i].toLowerCase().includes('ci'))) {
-          continue;
+          continue; // Saltar encabezados
         }
         if (lines[i].trim() === '') continue;
         
@@ -1301,63 +1328,70 @@
         if (currentActiveTab === 'conductores') {
           const ci = columns[0]?.trim().toUpperCase();
           const nombre = columns[1]?.trim().toUpperCase();
-          if (ci && nombre) batchData.push({ cedula: ci, name: nombre });
+          if (ci && nombre) {
+            const index = globalDrivers.findIndex(d => d.cedula === ci);
+            if(index >= 0) globalDrivers[index].name = nombre;
+            else globalDrivers.push({ id: generateId(), cedula: ci, name: nombre });
+            countAdded++;
+          }
         } 
         else if (currentActiveTab === 'placas') {
           const placa = columns[0]?.trim().toUpperCase();
-          if (placa) batchData.push({ placa });
+          if (placa) {
+            const index = globalPlates.findIndex(p => p.placa === placa);
+            if(index === -1) globalPlates.push({ id: generateId(), placa });
+            countAdded++;
+          }
         } 
         else if (currentActiveTab === 'clientes') {
           const code = columns[0]?.trim().toUpperCase();
           const name = columns[1]?.trim().toUpperCase();
           const transport = columns[2]?.trim().toUpperCase() || "PARTICULAR";
-          if (code && name) batchData.push({ code, name, transport });
+          if (code && name) {
+            const index = globalClients.findIndex(c => c.code === code);
+            if(index >= 0) {
+              globalClients[index].name = name;
+              globalClients[index].transport = transport;
+            } else {
+              globalClients.push({ id: generateId(), code, name, transport });
+            }
+            countAdded++;
+          }
         } 
         else if (currentActiveTab === 'productos') {
           const code = columns[0]?.trim().toUpperCase();
           const name = columns[1]?.trim().toUpperCase();
-          if (code && name) batchData.push({ code, name });
+          if (code && name) {
+            const index = globalProducts.findIndex(p => p.code === code);
+            if(index >= 0) globalProducts[index].name = name;
+            else globalProducts.push({ id: generateId(), code, name });
+            countAdded++;
+          }
         }
       }
       
-      if(batchData.length > 0) {
-        updateSyncStatus("Subiendo carga masiva...");
-        
-        // CORRECCIÓN CLAVE: En Supabase v2 se usa directamente .upsert(data) en lugar de pasar la opción dentro de .insert()
-        const { error } = await supabaseClient.from(currentActiveTab).upsert(batchData);
-        
-        if(!error) {
-          alert(`Carga masiva de ${batchData.length} registros completada exitosamente.`);
-          if (currentActiveTab === 'conductores') { currentDriverPage = 1; fetchDrivers(); }
-          if (currentActiveTab === 'placas') { currentPlatePage = 1; fetchPlates(); }
-          if (currentActiveTab === 'clientes') { currentClientPage = 1; fetchClients(); }
-          if (currentActiveTab === 'productos') { currentProductPage = 1; fetchProducts(); }
-        } else {
-          alert("Error en carga masiva: " + error.message);
-          updateSyncStatus("Última sincronización: Error");
-        }
+      if(countAdded > 0) {
+        if (currentActiveTab === 'conductores') { saveToLocalStorage('lg_conductores', globalDrivers); currentDriverPage = 1; fetchDrivers(); }
+        if (currentActiveTab === 'placas') { saveToLocalStorage('lg_placas', globalPlates); currentPlatePage = 1; fetchPlates(); }
+        if (currentActiveTab === 'clientes') { saveToLocalStorage('lg_clientes', globalClients); currentClientPage = 1; fetchClients(); }
+        if (currentActiveTab === 'productos') { saveToLocalStorage('lg_productos', globalProducts); currentProductPage = 1; fetchProducts(); }
+        alert(`Carga masiva completada: ${countAdded} registros procesados con éxito en almacenamiento local.`);
       }
     };
     reader.readAsText(file);
     e.target.value = ''; 
   });
 
-  // Inicialización de la App conectada
-  async function initApp() {
-    try {
-      const { data, error } = await supabaseClient.from('conductores').select('id').limit(1);
-      if(error) throw error;
-      
-      document.getElementById('supabase-db-badge').innerText = "CONECTADO";
-      document.getElementById('supabase-db-badge').style.backgroundColor = "rgba(16, 185, 129, 0.2)";
-      
-      fetchDrivers();
-    } catch(err) {
-      document.getElementById('supabase-db-badge').innerText = "ERROR BD";
-      document.getElementById('supabase-db-badge').style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-      document.getElementById('supabase-db-badge').style.color = "#ef4444";
-      updateSyncStatus("⚠️ No se pudo establecer conexión con Supabase.");
-    }
+  // Inicialización de la App en modo autónomo
+  function initApp() {
+    const badge = document.getElementById('supabase-db-badge');
+    badge.innerText = "LOCAL MOCK";
+    badge.style.backgroundColor = "rgba(56, 189, 248, 0.2)";
+    badge.style.color = "#38bdf8";
+    badge.style.border = "1px solid rgba(56, 189, 248, 0.5)";
+    
+    // Ejecutar render inicial
+    fetchDrivers();
   }
 
   initApp();
